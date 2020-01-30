@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <util/atomic.h>
 
 // Pin Definitions are for the 32u4 Adafruit ItsyBitsy
@@ -47,7 +48,25 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+}
 
+/*
+ * Check if enough time has elapsed, accounting for millis() overflow.
+ */
+bool periodPassed(
+    unsigned long currentMillis,
+    unsigned long lastUpdate,
+    unsigned long period
+) {
+  unsigned long elapsed;
+  if (currentMillis < lastUpdate) {
+    // millis overflow happened
+    elapsed = ULONG_MAX - lastUpdate;
+    elapsed += currentMillis;
+  } else {
+    elapsed = currentMillis - lastUpdate;
+  }
+  return elapsed > period;
 }
 
 void setFans(float speed) {
