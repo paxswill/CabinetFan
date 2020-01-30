@@ -8,8 +8,26 @@ const byte control1Pin = 9;  // Digital 9   PB5  TIMER1A
 const byte control2Pin = 10; // Digital 10  PB6  TIMER1B
 const byte tempPin = A11;    // D12/A11     PD6  ADC9
 
-// See setup() where PWM is configured for details.
-#define FAN_CONTROL_TOP 320
+// 25kHz is the normal PWM frequency for 4-pin fan control
+#define FAN_CONTROL_FREQ 25000
+
+/* Specify what kind of PWM to use: fast, phase correct, or
+ * phase and frequency correct.
+ */
+#define USE_FAST_PWM       0
+#define USE_PHASE_PWM      0
+#define USE_PHASE_FREQ_PWM 1
+
+/* Define the TOP value in terms of the kind of PWM and the
+ * clock speed (see Timer/Counter 1 configuration in setup()).
+ */
+#if USE_FAST_PWM
+#define FAN_CONTROL_TOP (F_CPU / FAN_CONTROL_FREQ)
+#elif USE_PHASE_PWM || USE_PHASE_FREQ_PWM
+#define FAN_CONTROL_TOP (F_CPU / FAN_CONTROL_FREQ / 2)
+#else
+#error Invalid PWM Mode
+#endif
 
 volatile uint8_t currentTachTicks[] = {0, 0};
 
@@ -21,7 +39,7 @@ void setup() {
   pinMode(control1Pin, OUTPUT);
   pinMode(control2Pin, OUTPUT);
   /*
-   * Configure Timer/Counter 1 as follows:
+   * Configure Timer/Counter 1 for fan control as follows:
    * Enable phase correct PWM using ICR1 as the TOP value (mode
    * 10 in table 14-4) on pins PD5 and PD6 (digital pins marked
    * above). To hit a 25kHz duty cycle the clock is going to be
@@ -30,7 +48,19 @@ void setup() {
    * I'm using ICR1 as I don't intend to use input capture.
    */
   TCCR1A = _BV(COM1A1) | _BV(COM1B1);
-  TCCR1B = _BV(CS10) | _BV(WGM13);
+  TCCR1B = _BV(CS10);
+  // Set the waveform generator depending on the PWM mode
+#ifdef USE_FAST_PWM
+  TCCR1A |= _BV(WGM11);
+  TCCR1B |= _BV(WGM13) | _BV(WGM12);
+#elif USE_PHASE_PWM
+  TCCR1A |= _BV(WGM11);
+  TCCR1B |= _BV(WGM13);
+#elif USE_PHASE_FREQ_PWM
+  TCCR1B |= _BV(WGM13);
+#else
+#error Invalid PWM mode
+#endif
   ICR1 = FAN_CONTROL_TOP;
   // Default to no PWM signal
   OCR1A = 0;
