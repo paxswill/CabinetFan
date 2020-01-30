@@ -33,6 +33,8 @@ volatile uint8_t currentTachTicks[] = {0, 0};
 uint8_t frequencies[] = {0, 0};
 
 unsigned long lastFrequencyUpdate = 0;
+unsigned long rampStartTime = 0;
+float rampTarget = 0.0;
 
 void setup() {
   // Could probably gang these together so only one tach is read
@@ -104,6 +106,14 @@ void loop() {
       frequencies[i] = min(scaledTicks[i], UINT8_MAX);
     }
   }
+  /* Check if we're doing a ramp-up cycle and finish it if needed.
+   * When starting from a dead stop, the fan should be set to a 30%
+   * duty cycle for 2 seconds and then move to the final speed.
+   */
+  if (rampTarget != 0.0 && periodPassed(currentMillis, rampStartTime, 2000)) {
+    _setFans(rampTarget);
+    rampTarget = 0.0;
+  }
 }
 
 /*
@@ -125,12 +135,26 @@ bool periodPassed(
   return elapsed > period;
 }
 
+/*
+ * Set fan speed, accounting for ramp up as needed.
+ */
 void setFans(float speed) {
   float scaledSpeed = constrain(speed, 0.0, 1.0);
-  // TODO: Fix this so it actually sets low speed properly
-  // Clamp speeds to a minimum of 30% to avoid having to ramp up
-  scaledSpeed = max(scaledSpeed, 0.3);
+  // See ramp up notes in loop for explanation of the ramp-up
+  if (frequencies[0] == 0 && frequencies[1] == 0) {
+    rampTarget = scaledSpeed;
+    rampStartTime = millis();
+    _setFans(0.3);
+  } else {
+    _setFans(scaledSpeed);
+  }
+}
 
+/*
+ * Directly set fan speed.
+ */
+void _setFans(float speed) {
+  float scaledSpeed = constrain(speed, 0.0, 1.0);
   uint16_t ocrSpeed = (int)(scaledSpeed * FAN_CONTROL_TOP);
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     OCR1A = ocrSpeed;
