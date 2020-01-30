@@ -18,6 +18,11 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 #define USE_PHASE_PWM      0
 #define USE_PHASE_FREQ_PWM 1
 
+/* Specify what kind of temperature sensor to use.
+ */
+#define USE_INT_THERMOMETER 1
+#define USE_EXT_THERMOMETER 0
+
 /* Define the TOP value in terms of the kind of PWM and the
  * clock speed (see Timer/Counter 1 configuration in setup()).
  */
@@ -30,9 +35,11 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 #endif
 
 volatile uint8_t currentTachTicks[] = {0, 0};
+volatile float temperature = 0.0;
 uint8_t frequencies[] = {0, 0};
 
 unsigned long lastFrequencyUpdate = 0;
+unsigned long lastTemperatureUpdate = 0;
 unsigned long rampStartTime = 0;
 float rampTarget = 0.0;
 
@@ -79,6 +86,59 @@ void setup() {
   // Trigger on rising edge
   EICRA = _BV(ISC31) | _BV(ISC30) | _BV(ISC21) | _BV(ISC20);
   EIMSK = eimsk | _BV(INT2) | _BV(INT3);
+  /* Configure the ADC and Timer/Counter 4 to update the temperature
+   * every second. Only Timers 0, 1 and 4 can be used to trigger
+   * automatic ADC conversions. Timer 0 is used for Arduino things,
+   * and Timer 1 is being used for fan control as it's a 16-bit timer
+   * and is exposed on more than one pin (Timer 3 only has one pin
+   * exposed). This leaves Timer 4, the 10-bit "high speed" timer.
+   * The longest TOP value with the largest prescaler gives is a delay
+   * of just over a second.
+   */
+  // Start with Timer/Counter 4 config. No PWM makes for a lot of 0s.
+  TCCR4A = 0;
+  // Use the 16384 prescaler, see table 15-14
+  TCCR4B = _BV(CS43) | _BV(CS42) | _BV(CS41) | _BV(CS40);
+  TCCR4C = 0;
+  TCCR4D = 0;
+  TCCR4E = 0;
+  // All 10-bit registers share a high byte.
+  // See section 15.11 in the manual for details.
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    TC4H = 0b11;
+    OCR4C = 0xFF;
+  }
+  /* Set the high bits back to 0 to prevent inadvertently setting high
+   * bits later.
+   */
+  TC4H = 0;
+  /* Configure ADC to automatically trigger conversions on
+   * Timer 4 overflow. The ADC complete interrupt will be used
+   * to retrieve the results.
+   */
+  // NOTE: ADEN is not set until after all setup is complete.
+  ADCSRA = _BV(ADATE) | _BV(ADIE);
+  /* Both internal and external thermometers need MUX5 set.
+   */
+  ADCSRB = _BV(ADTS3) | _BV(MUX5);
+  // Configure the thermometer.
+#if USE_INT_THERMOMETER
+  /* The internal reference must be used with the internal temperature
+   * sensor.
+   */
+  ADMUX = _BV(REFS1) | _BV(REFS0) | _BV(MUX0) | _BV(MUX1) | _BV(MUX2);
+#elif USE_EXT_THERMOMETER
+  /* Use the internal voltage reference for the external thermometer
+   * as it tops out at 1.75V (the internal reference voltage is 2.56v)
+   * and we'll get better scaling with that instead of the Arduino
+   * default of 5V.
+   */
+  ADMUX = _BV(REFS1) | _BV(REFS0) | _BV(MUX0);
+#else
+#error Invalid thermometer selection
+#endif
+  // Kick off the automatic conversions
+  ADCSRA |= ADEN;
 }
 
 void loop() {
@@ -175,4 +235,25 @@ ISR(INT2_vect) {
 }
 ISR(INT3_vect, ISR_ALIASOF(INT2_vect));
 
+/* ADC conversions are going to be automatically triggered, so this
+ * handler will just stash the results in a global variable.
+ */
+ISR(ADC_vect) {
+#if USE_INT_THERMOMETER
+  /* Apparently the output of the internal temperature sensor is in
+   * Kelvins directly, so let's just convert it to celsius.
+   */
+  // TODO: see if you need to explicitly discard the first value, or can
+  // we just barrel right past it?
+  // TODO: The internal sensor can (according to the datasheet) be wildly
+  // inaccurate (±10ºC)
+  temperature = ADCW - 273;
+#elif USE_EXT_THERMOMETER
+  // Lifting equation from Adafruit (scaling the ADC value back to volts)
+  temperature = 100.0 * ((float)ADC / 2.56) - 50.0;
+#else
+#error Invalid thermometer selection
+#endif
+  // For debugging purposes track when the temp is updated
+  lastTemperatureUpdate = millis();
 }
