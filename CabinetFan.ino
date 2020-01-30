@@ -10,17 +10,13 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 // See setup() where PWM is configured for details.
 #define FAN_CONTROL_TOP 320
 
-volatile long tach1LastTick = 0;
-volatile uint16_t tach1Frequency = 0;
-volatile long tach2LastTick = 0;
-volatile uint16_t tach2Frequency = 0;
+volatile uint8_t currentTachTicks[] = {0, 0};
 
 void setup() {
   // Could probably gang these together so only one tach is read
   // and both fans are controlled by one PWM signal.
   // But this is more fun.
-  pinMode(tach1Pin, INPUT_PULLUP);
-  pinMode(tach2Pin, INPUT_PULLUP);
+
   pinMode(control1Pin, OUTPUT);
   pinMode(control2Pin, OUTPUT);
   /*
@@ -38,6 +34,15 @@ void setup() {
   // Default to no PWM signal
   OCR1A = 0;
   OCR1B = 0;
+  /* Configure external interrupts for the tach pins.
+   */
+  pinMode(tach1Pin, INPUT_PULLUP);
+  pinMode(tach2Pin, INPUT_PULLUP);
+  // Disable interrupts, configure, then re-enable
+  uint8_t eimsk = EIMSK;
+  // Trigger on rising edge
+  EICRA = _BV(ISC31) | _BV(ISC30) | _BV(ISC21) | _BV(ISC20);
+  EIMSK = eimsk | _BV(INT2) | _BV(INT3);
 }
 
 void loop() {
@@ -58,25 +63,17 @@ void setFans(float speed) {
   }
 }
 
-void tach1Handler() {
-  tachHandler(&tach1LastTick, &tach1Frequency);
-}
-
-void tach2Handler() {
-  tachHandler(&tach2LastTick, &tach2Frequency);
-}
-
-void tachHandler(volatile long * tick, volatile uint16_t * frequency) {
-  long now = micros();
-  long lastTick;
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    lastTick = *tick;
+// Using a combined external interrupt handler for tach ticks
+ISR(INT2_vect) {
+  volatile uint8_t * ticker = NULL;
+  // tach 1 is int 2, tach 2 is int 3
+  if (bit_is_set(EIFR, INTF2)) {
+    ticker = currentTachTicks;
+  } else if (bit_is_set(EIFR, INTF3)) {
+    ticker = currentTachTicks + 1;
   }
-  long elapsed = now - lastTick;
-  long rawFrequency = 1000000 / elapsed;
-  // Clamp the max to a 16-bit unsigned in
-  rawFrequency = min(UINT16_MAX, rawFrequency);
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    frequency = (uint16_t)rawFrequency;
-  }
+  (*ticker)++;
+}
+ISR(INT3_vect, ISR_ALIASOF(INT2_vect));
+
 }
