@@ -30,6 +30,9 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 #endif
 
 volatile uint8_t currentTachTicks[] = {0, 0};
+uint8_t frequencies[] = {0, 0};
+
+unsigned long lastFrequencyUpdate = 0;
 
 void setup() {
   // Could probably gang these together so only one tach is read
@@ -77,7 +80,30 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  unsigned long currentMillis = millis();
+  // Update the freqency every second
+  if (periodPassed(currentMillis, lastFrequencyUpdate, 1000)) {
+    lastFrequencyUpdate = currentMillis;
+    uint8_t tachTicks[2];
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      for (int i = 0; i < 2; i++) {
+        tachTicks[i] = currentTachTicks[i];
+        currentTachTicks[i] = 0;
+      }
+    }
+    unsigned long period = currentMillis - lastFrequencyUpdate;
+    unsigned long scaledTicks[2];
+    for (int i = 0; i < 2; i++) {
+      /* Multiply by 100 to get milliticks, then divide by 2 as
+       * there are two ticks per revolution.
+       */
+      scaledTicks[i] = tachTicks[i] * 500;
+      // Convert to frequency (milliticks/millisecond == tick/second)
+      scaledTicks[i] /= period;
+      // Clamp to 256 Hz, which is 15360RPM
+      frequencies[i] = min(scaledTicks[i], UINT8_MAX);
+    }
+  }
 }
 
 /*
