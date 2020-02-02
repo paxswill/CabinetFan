@@ -2,10 +2,8 @@
 #include <util/atomic.h>
 
 // Pin Definitions are for the 32u4 Adafruit ItsyBitsy
-const byte tach1Pin = 0;     // Digital 0   PD2  INT2
-const byte tach2Pin = 1;     // Digital 1   PD3  INT3
-const byte control1Pin = 9;  // Digital 9   PB5  TIMER1A
-const byte control2Pin = 10; // Digital 10  PB6  TIMER1B
+const byte tachPin = 0;     // Digital 0   PD2  INT2
+const byte controlPin = 9;  // Digital 9   PB5  TIMER1A
 const byte tempPin = A11;    // D12/A11     PD6  ADC9
 
 // 25kHz is the normal PWM frequency for 4-pin fan control
@@ -34,9 +32,9 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 #error Invalid PWM Mode
 #endif
 
-volatile uint8_t currentTachTicks[] = {0, 0};
+volatile uint8_t currentTachTicks = 0;
 volatile float temperature = 0.0;
-uint8_t frequencies[] = {0, 0};
+uint8_t frequencies = 0;
 
 unsigned long lastFrequencyUpdate = 0;
 unsigned long lastTemperatureUpdate = 0;
@@ -44,12 +42,8 @@ unsigned long rampStartTime = 0;
 float rampTarget = 0.0;
 
 void setup() {
-  // Could probably gang these together so only one tach is read
-  // and both fans are controlled by one PWM signal.
-  // But this is more fun.
 
-  pinMode(control1Pin, OUTPUT);
-  pinMode(control2Pin, OUTPUT);
+  pinMode(controlPin, OUTPUT);
   /*
    * Configure Timer/Counter 1 for fan control as follows:
    * Enable phase correct PWM using ICR1 as the TOP value (mode
@@ -59,7 +53,7 @@ void setup() {
    * and TOP set to 320 (if using fast PWM, TOP should be 639).
    * I'm using ICR1 as I don't intend to use input capture.
    */
-  TCCR1A = _BV(COM1A1) | _BV(COM1B1);
+  TCCR1A = _BV(COM1A1);
   TCCR1B = _BV(CS10);
   // Set the waveform generator depending on the PWM mode
 #ifdef USE_FAST_PWM
@@ -76,16 +70,13 @@ void setup() {
   ICR1 = FAN_CONTROL_TOP;
   // Default to no PWM signal
   OCR1A = 0;
-  OCR1B = 0;
   /* Configure external interrupts for the tach pins.
    */
-  pinMode(tach1Pin, INPUT_PULLUP);
-  pinMode(tach2Pin, INPUT_PULLUP);
+  pinMode(tachPin, INPUT_PULLUP);
   // Disable interrupts, configure, then re-enable
   uint8_t eimsk = EIMSK;
   // Trigger on rising edge
   EICRA = _BV(ISC31) | _BV(ISC30) | _BV(ISC21) | _BV(ISC20);
-  EIMSK = eimsk | _BV(INT2) | _BV(INT3);
   /* Configure the ADC and Timer/Counter 4 to update the temperature
    * every second. Only Timers 0, 1 and 4 can be used to trigger
    * automatic ADC conversions. Timer 0 is used for Arduino things,
@@ -112,6 +103,7 @@ void setup() {
    * bits later.
    */
   TC4H = 0;
+  EIMSK = eimsk | _BV(INT2);
   /* Configure ADC to automatically trigger conversions on
    * Timer 4 overflow. The ADC complete interrupt will be used
    * to retrieve the results.
@@ -146,25 +138,21 @@ void loop() {
   // Update the freqency every second
   if (periodPassed(currentMillis, lastFrequencyUpdate, 1000)) {
     lastFrequencyUpdate = currentMillis;
-    uint8_t tachTicks[2];
+    uint8_t tachTicks;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-      for (int i = 0; i < 2; i++) {
-        tachTicks[i] = currentTachTicks[i];
-        currentTachTicks[i] = 0;
-      }
-    }
     unsigned long period = currentMillis - lastFrequencyUpdate;
-    unsigned long scaledTicks[2];
-    for (int i = 0; i < 2; i++) {
-      /* Multiply by 100 to get milliticks, then divide by 2 as
-       * there are two ticks per revolution.
-       */
-      scaledTicks[i] = tachTicks[i] * 500;
-      // Convert to frequency (milliticks/millisecond == tick/second)
-      scaledTicks[i] /= period;
-      // Clamp to 256 Hz, which is 15360RPM
-      frequencies[i] = min(scaledTicks[i], UINT8_MAX);
+      tachTicks = currentTachTicks;
+      currentTachTicks = 0;
     }
+    unsigned long scaledTicks;
+    /* Multiply by 100 to get milliticks, then divide by 2 as
+     * there are two ticks per revolution.
+     */
+    scaledTicks = tachTicks * 500;
+    // Convert to frequency (milliticks/millisecond == tick/second)
+    scaledTicks /= period;
+    // Clamp to 255 Hz, which is 15360RPM
+    frequencies = min(scaledTicks, UINT8_MAX);
   }
   /* Check if we're doing a ramp-up cycle and finish it if needed.
    * When starting from a dead stop, the fan should be set to a 30%
@@ -218,22 +206,12 @@ void _setFans(float speed) {
   uint16_t ocrSpeed = (int)(scaledSpeed * FAN_CONTROL_TOP);
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     OCR1A = ocrSpeed;
-    OCR1B = ocrSpeed;
   }
 }
 
-// Using a combined external interrupt handler for tach ticks
 ISR(INT2_vect) {
-  volatile uint8_t * ticker = NULL;
-  // tach 1 is int 2, tach 2 is int 3
-  if (bit_is_set(EIFR, INTF2)) {
-    ticker = currentTachTicks;
-  } else if (bit_is_set(EIFR, INTF3)) {
-    ticker = currentTachTicks + 1;
-  }
-  (*ticker)++;
+  currentTachTicks += 1;
 }
-ISR(INT3_vect, ISR_ALIASOF(INT2_vect));
 
 /* ADC conversions are going to be automatically triggered, so this
  * handler will just stash the results in a global variable.
