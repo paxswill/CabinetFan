@@ -1,6 +1,8 @@
 #include <limits.h>
 #include <util/atomic.h>
 
+#include "Thermometer.h"
+
 // Pin Definitions are for the 32u4 Adafruit ItsyBitsy
 const byte tachPin = 0;     // Digital 0   PD2  INT2
 const byte controlPin = 9;  // Digital 9   PB5  TIMER1A
@@ -16,11 +18,6 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 #define USE_PHASE_PWM      0
 #define USE_PHASE_FREQ_PWM 1
 
-/* Specify what kind of temperature sensor to use.
- */
-#define USE_INT_THERMOMETER 0
-#define USE_EXT_THERMOMETER 1
-
 /* Define the TOP value in terms of the kind of PWM and the
  * clock speed (see Timer/Counter 1 configuration in setup()).
  */
@@ -33,13 +30,13 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 #endif
 
 volatile uint8_t currentTachTicks = 0;
-volatile float temperature = 0.0;
 uint8_t frequencies = 0;
 
 unsigned long lastFrequencyUpdate = 0;
-unsigned long lastTemperatureUpdate = 0;
 unsigned long rampStartTime = 0;
 float rampTarget = 0.0;
+Thermometer externalThermo = Thermometer(tempPin);
+Thermometer internalThermo = Thermometer();
 
 void setup() {
 
@@ -78,33 +75,6 @@ void setup() {
   // Trigger on rising edge
   EICRA = _BV(ISC31) | _BV(ISC30) | _BV(ISC21) | _BV(ISC20);
   EIMSK = eimsk | _BV(INT2);
-  /* Configure ADC to automatically trigger conversions on
-   * Timer 4 overflow. The ADC complete interrupt will be used
-   * to retrieve the results.
-   */
-  // NOTE: ADEN is not set until after all setup is complete.
-  ADCSRA = _BV(ADIE) | _BV(ADEN);
-  /* Both internal and external thermometers need MUX5 set.
-   */
-  ADCSRB = _BV(MUX5);
-  // Configure the thermometer.
-#if USE_INT_THERMOMETER
-  /* The internal reference must be used with the internal temperature
-   * sensor.
-   */
-  ADMUX = _BV(REFS1) | _BV(REFS0) | _BV(MUX0) | _BV(MUX1) | _BV(MUX2);
-#elif USE_EXT_THERMOMETER
-  /* Use the internal voltage reference for the external thermometer
-   * as it tops out at 1.75V (the internal reference voltage is 2.56v)
-   * and we'll get better scaling with that instead of the Arduino
-   * default of 5V.
-   */
-  ADMUX = _BV(REFS1) | _BV(REFS0) | _BV(MUX0);
-#else
-#error Invalid thermometer selection
-#endif
-  // Kick off the automatic conversions
-  //ADCSRA |= _BV(ADEN);
 }
 
 void loop() {
@@ -194,31 +164,4 @@ void _setFans(float fanSpeed) {
 
 ISR(INT2_vect) {
   currentTachTicks += 1;
-}
-
-void updateTemp() {
-  ADCSRA |= _BV(ADSC);
-}
-
-/* ADC conversions are going to be automatically triggered, so this
- * handler will just stash the results in a global variable.
- */
-ISR(ADC_vect) {
-#if USE_INT_THERMOMETER
-  /* Apparently the output of the internal temperature sensor is in
-   * Kelvins directly, so let's just convert it to celsius.
-   */
-  // TODO: see if you need to explicitly discard the first value, or can
-  // we just barrel right past it?
-  // TODO: The internal sensor can (according to the datasheet) be wildly
-  // inaccurate (±10ºC)
-  temperature = ADCW - 273;
-#elif USE_EXT_THERMOMETER
-  // Lifting equation from Adafruit (scaling the ADC value back to volts)
-  temperature = 100.0 * ((float)ADC / 1023.0 * 2.56) - 50.0;
-#else
-#error Invalid thermometer selection
-#endif
-  // For debugging purposes track when the temp is updated
-  lastTemperatureUpdate = millis();
 }
