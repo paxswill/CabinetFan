@@ -160,8 +160,8 @@ bool periodPassed(
 /*
  * Set fan speed, accounting for ramp up as needed.
  */
-void setFans(float speed) {
-  float scaledSpeed = constrain(speed, 0.0, 1.0);
+void setFans(float fanSpeed) {
+  float scaledSpeed = constrain(fanSpeed, 0.0, 1.0);
   // See ramp up notes in loop for explanation of the ramp-up
   if (frequencies[0] == 0 && frequencies[1] == 0) {
     rampTarget = scaledSpeed;
@@ -175,8 +175,8 @@ void setFans(float speed) {
 /*
  * Directly set fan speed.
  */
-void _setFans(float speed) {
-  float scaledSpeed = constrain(speed, 0.0, 1.0);
+void _setFans(float fanSpeed) {
+  float scaledSpeed = constrain(fanSpeed, 0.0, 1.0);
   uint16_t ocrSpeed = (int)(scaledSpeed * FAN_CONTROL_TOP);
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     OCR1A = ocrSpeed;
