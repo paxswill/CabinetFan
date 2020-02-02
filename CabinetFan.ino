@@ -20,8 +20,8 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 
 /* Specify what kind of temperature sensor to use.
  */
-#define USE_INT_THERMOMETER 1
-#define USE_EXT_THERMOMETER 0
+#define USE_INT_THERMOMETER 0
+#define USE_EXT_THERMOMETER 1
 
 /* Define the TOP value in terms of the kind of PWM and the
  * clock speed (see Timer/Counter 1 configuration in setup()).
