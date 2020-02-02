@@ -77,42 +77,16 @@ void setup() {
   uint8_t eimsk = EIMSK;
   // Trigger on rising edge
   EICRA = _BV(ISC31) | _BV(ISC30) | _BV(ISC21) | _BV(ISC20);
-  /* Configure the ADC and Timer/Counter 4 to update the temperature
-   * every second. Only Timers 0, 1 and 4 can be used to trigger
-   * automatic ADC conversions. Timer 0 is used for Arduino things,
-   * and Timer 1 is being used for fan control as it's a 16-bit timer
-   * and is exposed on more than one pin (Timer 3 only has one pin
-   * exposed). This leaves Timer 4, the 10-bit "high speed" timer.
-   * The longest TOP value with the largest prescaler gives is a delay
-   * of just over a second.
-   */
-  // Start with Timer/Counter 4 config. No PWM makes for a lot of 0s.
-  TCCR4A = 0;
-  // Use the 16384 prescaler, see table 15-14
-  TCCR4B = _BV(CS43) | _BV(CS42) | _BV(CS41) | _BV(CS40);
-  TCCR4C = 0;
-  TCCR4D = 0;
-  TCCR4E = 0;
-  // All 10-bit registers share a high byte.
-  // See section 15.11 in the manual for details.
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    TC4H = 0b11;
-    OCR4C = 0xFF;
-  }
-  /* Set the high bits back to 0 to prevent inadvertently setting high
-   * bits later.
-   */
-  TC4H = 0;
   EIMSK = eimsk | _BV(INT2);
   /* Configure ADC to automatically trigger conversions on
    * Timer 4 overflow. The ADC complete interrupt will be used
    * to retrieve the results.
    */
   // NOTE: ADEN is not set until after all setup is complete.
-  ADCSRA = _BV(ADATE) | _BV(ADIE);
+  ADCSRA = _BV(ADIE) | _BV(ADEN);
   /* Both internal and external thermometers need MUX5 set.
    */
-  ADCSRB = _BV(ADTS3) | _BV(MUX5);
+  ADCSRB = _BV(MUX5);
   // Configure the thermometer.
 #if USE_INT_THERMOMETER
   /* The internal reference must be used with the internal temperature
@@ -130,7 +104,7 @@ void setup() {
 #error Invalid thermometer selection
 #endif
   // Kick off the automatic conversions
-  ADCSRA |= ADEN;
+  //ADCSRA |= _BV(ADEN);
 }
 
 void loop() {
@@ -211,6 +185,10 @@ void _setFans(float speed) {
 
 ISR(INT2_vect) {
   currentTachTicks += 1;
+}
+
+void updateTemp() {
+  ADCSRA |= _BV(ADSC);
 }
 
 /* ADC conversions are going to be automatically triggered, so this
