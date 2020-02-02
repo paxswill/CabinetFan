@@ -137,10 +137,10 @@ void loop() {
   unsigned long currentMillis = millis();
   // Update the freqency every second
   if (periodPassed(currentMillis, lastFrequencyUpdate, 1000)) {
+    unsigned long period = currentMillis - lastFrequencyUpdate;
     lastFrequencyUpdate = currentMillis;
     uint8_t tachTicks;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    unsigned long period = currentMillis - lastFrequencyUpdate;
       tachTicks = currentTachTicks;
       currentTachTicks = 0;
     }
