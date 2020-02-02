@@ -250,7 +250,7 @@ ISR(ADC_vect) {
   temperature = ADCW - 273;
 #elif USE_EXT_THERMOMETER
   // Lifting equation from Adafruit (scaling the ADC value back to volts)
-  temperature = 100.0 * ((float)ADC / 2.56) - 50.0;
+  temperature = 100.0 * ((float)ADC / 1023.0 * 2.56) - 50.0;
 #else
 #error Invalid thermometer selection
 #endif
