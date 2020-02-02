@@ -163,10 +163,19 @@ bool periodPassed(
 void setFans(float fanSpeed) {
   float scaledSpeed = constrain(fanSpeed, 0.0, 1.0);
   // See ramp up notes in loop for explanation of the ramp-up
-  if (frequencies[0] == 0 && frequencies[1] == 0) {
+  bool stopped = frequencies == 0;
+  if (stopped && scaledSpeed < 0.3) {
+    // Need to ramp up, then back down
     rampTarget = scaledSpeed;
     rampStartTime = millis();
     _setFans(0.3);
+  } else if (rampTarget != 0.0 && scaledSpeed >= 0.3) {
+    // Skip ramp up now
+    rampTarget = 0.0;
+    _setFans(scaledSpeed);
+  } else if (rampTarget != 0.0 && scaledSpeed < 0.3) {
+    // Just a new ramp down target
+    rampTarget = scaledSpeed;
   } else {
     _setFans(scaledSpeed);
   }
