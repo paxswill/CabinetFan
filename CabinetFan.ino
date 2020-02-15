@@ -2,6 +2,7 @@
 #include <util/atomic.h>
 
 #include "Thermometer.h"
+#include "util.h"
 
 // Pin Definitions are for the 32u4 Adafruit ItsyBitsy
 const byte tachPin = 0;     // Digital 0   PD2  INT2
@@ -106,25 +107,6 @@ void loop() {
     _setFans(rampTarget);
     rampTarget = 0.0;
   }
-}
-
-/*
- * Check if enough time has elapsed, accounting for millis() overflow.
- */
-bool periodPassed(
-    unsigned long currentMillis,
-    unsigned long lastUpdate,
-    unsigned long period
-) {
-  unsigned long elapsed;
-  if (currentMillis < lastUpdate) {
-    // millis overflow happened
-    elapsed = ULONG_MAX - lastUpdate;
-    elapsed += currentMillis;
-  } else {
-    elapsed = currentMillis - lastUpdate;
-  }
-  return elapsed > period;
 }
 
 /*
