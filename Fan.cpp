@@ -149,6 +149,7 @@ Fan::Fan(
     interruptIndex = digitalPinToInterrupt(sensePin);
     uint8_t vectorNumber = interruptIndex + 1;
     if (!isExternalInterruptSetup[interruptIndex]) {
+      pinMode(sensePin, INPUT_PULLUP);
       switch (vectorNumber) {
         case 1:
         case 2:
