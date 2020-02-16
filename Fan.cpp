@@ -176,7 +176,7 @@ Fan::Fan(
        * number and the external interrupt number.
        */
       EIMSK |= 1 << (vectorNumber - 1);
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      ATOMIC_BLOCK(ATOMIC_FORCEON) {
         numTicks[interruptIndex] = 0;
       }
       lastTickUpdate[interruptIndex] = millis();
@@ -241,7 +241,7 @@ void Fan::_setSpeed(float fanSpeed) {
    * in between accessing the high and low bits. So interrupts are temporarily
    * disabled while the OCRnx register is being set.
    */
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+  ATOMIC_BLOCK(ATOMIC_FORCEON) {
     switch (digitalPinToTimer(controlPin)) {
       case TIMER1A:
         OCR1A = ocrSpeed;
@@ -334,7 +334,7 @@ void Fan::periodic(unsigned long currentMillis) {
      * It's also important to disable interrupts when accessing these values so
      * they don't get corrupted in between operating on the high and low bits.
      */
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
       tickCount = numTicks[interruptIndex];
       numTicks[interruptIndex] = 0;
     }
