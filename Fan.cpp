@@ -146,8 +146,8 @@ Fan::Fan(
   }
   // Set up external interrupts (if needed)
   if (sensePin != NOT_SET) {
-    uint8_t vectorNumber = digitalPinToInterrupt(sensePin);
-    interruptIndex = getInterruptIndex(vectorNumber);
+    interruptIndex = digitalPinToInterrupt(sensePin);
+    uint8_t vectorNumber = interruptIndex + 1;
     if (!isExternalInterruptSetup[interruptIndex]) {
       switch (vectorNumber) {
         case 1:
