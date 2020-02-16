@@ -12,17 +12,19 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 
 Thermometer externalThermo = Thermometer(tempPin);
 Thermometer internalThermo = Thermometer();
-/* For reference:
- * Noctua NF-A4x20 speed ranges from 1200 to 5000 rpm
- * Noctua NF-S12A speed ranges from 300 to 1200 rpm
- */
-Fan fan = Fan(controlPin, tachPin, 1200, 5000);
+Fan *fan;
 
 void setup() {
-
-  fan.setSpeed(0.75);
+  /* Fan needs to be constructed *after* Arduino setup has completed, or else
+   * the PWM settings will be clobbered.
+   */
+  /* For reference:
+  * Noctua NF-A4x20 speed ranges from 1200 to 5000 rpm
+  * Noctua NF-S12A speed ranges from 300 to 1200 rpm
+  */
+  fan = new Fan(controlPin, Fan::NOT_SET, 1200, 5000, phaseFrequencyCorrect);
 }
 
 void loop() {
-  fan.periodic();
+  fan->periodic();
 }
