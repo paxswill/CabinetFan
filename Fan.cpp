@@ -229,11 +229,11 @@ void Fan::setSpeed(float fanSpeed) {
  * Directly set fan speed by setting the PWM duty cycle.
  */
 void Fan::_setSpeed(float fanSpeed) {
-  float scaledSpeed = constrain(fanSpeed, 0.0, 1.0);
+  currentSpeed = constrain(fanSpeed, 0.0, 1.0);
   /* Calculate the closest value for the OCRnx register for the appropriate
    * duty cycle.
    */
-  uint16_t ocrSpeed = (uint16_t)(scaledSpeed * topValue);
+  uint16_t ocrSpeed = (uint16_t)(currentSpeed * topValue);
   /* All of the registers in question are either 16-bits (so really two 8-bit
    * registers) or 10-bit registers (so a weird shared high register). In both
    * cases it's possible for them to be clobbered if an interrupt is triggered
