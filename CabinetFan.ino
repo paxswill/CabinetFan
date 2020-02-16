@@ -23,8 +23,21 @@ void setup() {
   * Noctua NF-S12A speed ranges from 300 to 1200 rpm
   */
   fan = new Fan(controlPin, Fan::NOT_SET, 1200, 5000, phaseFrequencyCorrect);
+  fan->setSpeed(0.8);
 }
 
+// Implicitly set to 0
+unsigned long lastUpdate;
+
 void loop() {
-  fan->periodic();
+  unsigned long currentMillis = millis();
+  if (periodPassed(currentMillis, lastUpdate, 3000)) {
+
+    Serial.print("Current speed: ");
+    Serial.println(fan->getSpeed());
+    Serial.print("Current RPM:   ");
+    Serial.println(fan->getRPM());
+    lastUpdate = currentMillis;
+  }
+  fan->periodic(currentMillis);
 }
