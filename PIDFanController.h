@@ -25,9 +25,6 @@ class PIDFanController: public FanController {
       unsigned long period = 1000
     );
 
-    // A short display name describing this controller type.
-    const char * name;
-
     // The abbreviation for the units for the set point.
     static const char * valueUnits;
 

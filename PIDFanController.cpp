@@ -20,13 +20,13 @@ PIDFanController::PIDFanController(
   unsigned long period
 ):
   FanController(fan, 0.0, 100, target),
-  name(name),
   thermometer(thermometer),
   k_p(k_p),
   k_i(k_i),
   k_d(k_d),
   period(period)
 {
+  this->name = name;
   controllerDebug("Name", name);
   controllerDebug("Kp", k_p);
   controllerDebug("Ki", k_i);
