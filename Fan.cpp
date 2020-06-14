@@ -78,10 +78,10 @@ Fan::Fan(
   int maxRPM,
   PWMMode mode
 ):
-  controlPin(controlPin),
-  sensePin(sensePin),
   minRPM(minRPM),
-  maxRPM(maxRPM)
+  maxRPM(maxRPM),
+  controlPin(controlPin),
+  sensePin(sensePin)
 {
   // Set up PWM
   pinMode(controlPin, OUTPUT);
