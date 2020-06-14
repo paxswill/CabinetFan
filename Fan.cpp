@@ -309,13 +309,14 @@ void Fan::periodic() {
  */
 void Fan::periodic(unsigned long currentMillis) {
   /* Check if we're doing a ramp-up cycle and finish it if needed.
-  * When starting from a dead stop, the fan should be set to a 30% duty cycle
-  * for 2 seconds and then move to the final speed.
-  */
+   * When starting from a dead stop, the fan should be set to a 30% duty cycle
+   * for 2 seconds and then move to the final speed.
+   */
   if (rampTarget != 0.0 && periodPassed(currentMillis, rampStartTime, 2000)) {
     _setSpeed(rampTarget);
     rampTarget = 0.0;
   }
+  // Update the current fan speed if we have a sense pin set.
   if (
     sensePin != NOT_SET &&
     periodPassed(currentMillis, lastTickUpdate[interruptIndex], 1500)
@@ -354,9 +355,9 @@ void Fan::periodic(unsigned long currentMillis) {
  * counter. Another option for implementing this would be a single interrupt
  * handler for all of the vectors and then checking EIFR (external interrupt
  * flag register) to see which counter needs to be incremented. That approach
- * spends more time in the hanler as there's a series of branches checking EIFR,
- * while this approach is pretty simple, just a two-ish cycle increment of a
- * 16-bit variable (in addition to the interrupt preamble and teardown).
+ * spends more time in the handler as there's a series of branches checking
+ * EIFR, while this approach is pretty simple, just a two-ish cycle increment
+ * of a 16-bit variable (in addition to the interrupt preamble and teardown).
  */
 ISR(INT0_vect) { ++numTicks[0]; }
 ISR(INT1_vect) { ++numTicks[1]; }

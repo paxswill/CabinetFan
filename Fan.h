@@ -40,7 +40,8 @@ class Fan {
     const uint8_t controlPin;
 
     /* The Arduino pin the fan's sense/tachometer signal is connected to. If
-     * set to the `NOT_SET` value, 
+     * set to the `NOT_SET` value, the fan speed will be estimated from the
+     * most recently requested speed and the maximum fan speed.
      */
     const uint8_t sensePin;
 
@@ -84,9 +85,7 @@ class Fan {
     static bool isTimer4Setup;
     static bool isExternalInterruptSetup[NUM_EXTERNAL_INTERRUPTS];
 
-    // Private method for directly setting the duty cycle of the PWM signal.:
+    // Private method for directly setting the duty cycle of the PWM signal.
     void _setSpeed(float fanSpeed);
 };
-
-
 #endif
