@@ -12,7 +12,4 @@ class Thermometer {
   private:
     const uint8_t pin;
 };
-
-
-
 #endif
