@@ -10,7 +10,8 @@ class FanController {
     FanController(Fan *fan, float minValue = FLT_MIN, float maxValue = FLT_MAX):
       minValue(minValue),
       maxValue(maxValue),
-      fan(fan)
+      fan(fan),
+      value((maxValue - minValue) / 2)
     {};
 
     // A short display name describing this controller type.
@@ -29,19 +30,20 @@ class FanController {
     const float maxValue;
 
     // Get the current set point.
-    virtual float getValue() = 0;
+    virtual float getValue();
 
     // Set a new set point.
-    virtual void setValue(float newValue) = 0;
+    virtual void setValue(float newValue);
 
     /* Convenience function that calls `periodic()` with the result of
      * `millis()`
      */
-    void periodic() { periodic(millis()); };
+    void periodic();
 
     // Called each iteration of the run loop.
     virtual void periodic(unsigned long currentMillis) = 0;
   protected:
     Fan *fan;
+    float value;
 };
 #endif

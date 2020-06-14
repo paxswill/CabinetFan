@@ -13,29 +13,17 @@ ConstantSpeedController::ConstantSpeedController(
   Fan *fan
 ):
   FanController(fan, fan->minRPM, fan->maxRPM)
-{
-  value = (float)((fan->maxRPM - fan->minRPM) / 2);
-}
+{}
 
 ConstantSpeedController::ConstantSpeedController(
   Fan *fan,
   float initialSpeed
 ):
-  FanController(fan, fan->minRPM, fan->maxRPM),
-  value(initialSpeed)
+  FanController(fan, fan->minRPM, fan->maxRPM)
 {
   if (value > fan->maxRPM) {
     value = (float)(fan->maxRPM);
   }
-}
-
-float ConstantSpeedController::getValue() {
-  return value;
-}
-
-void ConstantSpeedController::setValue(float newValue) {
-  // Constrain the new value to the limits
-  value = min(maxValue, max(minValue, newValue));
 }
 
 void ConstantSpeedController::periodic(unsigned long currentMillis) {
