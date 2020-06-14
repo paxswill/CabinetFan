@@ -11,13 +11,14 @@ class PIDFanController: public FanController {
   public:
     /* Setting any of the tuning constants (`k_p`, `k_i`, `k_p`) to 0 will
      * disable that portion of the controller.
-     * The default set point temperature is 24 degrees Celsius, 
+     * The default set point temperature is 27 degrees Celsius, about 80 degrees
+     * Fahrenheit.
      */
     PIDFanController(
       Fan *fan,
       Thermometer * thermometer,
       const char * name = "PID Controller",
-      float target = 24.0,
+      float target = 27.0,
       float k_p = 1,
       float k_i = 0,
       float k_d = 0,

@@ -45,7 +45,7 @@ void setup() {
    */
   speedController = new ConstantSpeedController(fan, 1.0);
   Thermometer * currentThermometer = &externalThermo;
-  float targetTemp = 24.0;
+  float targetTemp = 27.0;
   pController = new PIDFanController(
     fan,
     currentThermometer,
