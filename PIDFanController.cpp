@@ -36,8 +36,9 @@ PIDFanController::PIDFanController(
 
 void PIDFanController::periodic(unsigned long currentMillis) {
   if (periodPassed(currentMillis, lastUpdate, period)) {
-    unsigned long elapsedTime = currentMillis - lastUpdate;
     controllerDebug("Updating controller", "");
+    float elapsedSeconds = ((float)(currentMillis - lastUpdate)) / 1000.;
+    controllerDebug("Elapsed seconds", elapsedSeconds);
     // Update `lastUpdate` after we have the elapsed time.
     lastUpdate = currentMillis;
     float temp = thermometer->getTemperature();
@@ -55,24 +56,19 @@ void PIDFanController::periodic(unsigned long currentMillis) {
       // TODO: Is this operation backwards (temp - value)?
       const float error = temp - value;
       controllerDebug("error", error);
-      // NOTE: the correction 
       float correction = 0.0;
       // Proportional.
       correction += k_p * error;
       controllerDebug("Correction after Kp", correction);
       // Integral. Only bother updating it if integral control is enabled.
       if (k_i != 0) {
-        /* NOTE: Instead of seconds, the time unit is milliseconds as that's
-         * how we're keeping track of time anyways.
-         */
-        // TODO: That part above might not be right.
-        errorIntegral += error * elapsedTime;
+        errorIntegral += error * elapsedSeconds;
         controllerDebug("Error integral", errorIntegral);
         correction += k_i * errorIntegral;
         controllerDebug("Correction after Ki", correction);
       }
       // Derivative.
-      correction += k_d * ((error - previousError) / elapsedTime);
+      correction += k_d * ((error - previousError) / elapsedSeconds);
       controllerDebug("Correction after Kd", correction);
       // Apply the correction and set a new speed as needed.
       float currentSpeed = fan->getSpeed();
