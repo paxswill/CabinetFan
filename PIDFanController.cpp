@@ -45,7 +45,7 @@ void PIDFanController::periodic(unsigned long currentMillis) {
     /* Turn the fans off if the temperature is lower than the set point (no
      * sense heating up the cabinet just to turn the fans on).
      */
-    if (temp < value) {
+    if (temp < (value - 1.0)) {
       controllerDebug("Too cold, stopping.");
       /* TODO: if setRPM() is improved at some point, that might allow for more
        * fine-grained control.
