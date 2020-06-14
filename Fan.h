@@ -34,6 +34,12 @@ class Fan {
     void periodic();
     void periodic(unsigned long currentMillis);
 
+    // The minimum speed the fan can go, in rotations per minute.
+    const int minRPM;
+
+    // The maximum speed the fan can go, in rotations per minute.
+    const int maxRPM;
+
     static const uint8_t NOT_SET = UINT8_MAX;
   private:
     // The Arduino pin the PWM signal is generated on.
@@ -44,12 +50,6 @@ class Fan {
      * most recently requested speed and the maximum fan speed.
      */
     const uint8_t sensePin;
-
-    // The minimum speed the fan can go, in rotations per minute.
-    const int minRPM;
-
-    // The maximum speed the fan can go, in rotations per minute.
-    const int maxRPM;
 
     /* The TOP value used for the PWM signal. See the appropriate pages in the
      * SRM for details on how it affects the PWM signal. Alternatively, read
