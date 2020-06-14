@@ -22,6 +22,13 @@ PIDFanController *pController;
 PIDFanController * pidController;
 
 void setup() {
+#if DEBUG
+  // If in debug mode, wait for serial.
+  Serial.begin(115200);
+  while (!Serial);
+  while (!Serial.available());
+#endif
+
   /* Fan needs to be constructed *after* Arduino setup has completed, or else
    * the PWM settings will be clobbered.
    */

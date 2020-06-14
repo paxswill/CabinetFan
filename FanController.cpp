@@ -32,3 +32,45 @@ void FanController::setValue(float newValue) {
 void FanController::periodic() {
   periodic(millis());
 }
+
+void FanController::controllerDebug(const char * message) {
+  if (debug) {
+    Serial.print("\t");
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.println(message);
+  }
+}
+
+void FanController::controllerDebug(const char * message, const char * value) {
+  if (debug) {
+    Serial.print("\t");
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.print(message);
+    Serial.print(": ");
+    Serial.println(value);
+  }
+}
+
+void FanController::controllerDebug(const char * message, float value) {
+  if (debug) {
+    Serial.print("\t");
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.print(message);
+    Serial.print(": ");
+    Serial.println(value);
+  }
+}
+
+void FanController::controllerDebug(const char * message, unsigned long value) {
+  if (debug) {
+    Serial.print("\t");
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.print(message);
+    Serial.print(": ");
+    Serial.println(value);
+  }
+}

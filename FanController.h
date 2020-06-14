@@ -30,6 +30,14 @@ class FanController {
     // The maximum value for the set point.
     const float maxValue;
 
+    // When enabled, debug statements are logged to the serial console.
+#if DEBUG
+#warning Debug Mode Enabled!
+    bool debug = true;
+#else
+    bool debug = false;
+#endif
+
     // Get the current set point.
     virtual float getValue();
 
@@ -43,6 +51,11 @@ class FanController {
 
     // Called each iteration of the run loop.
     virtual void periodic(unsigned long currentMillis) = 0;
+
+    void controllerDebug(const char * message);
+    void controllerDebug(const char * message, const char * value);
+    void controllerDebug(const char * message, float value);
+    void controllerDebug(const char * message, unsigned long value);
   protected:
     Fan *fan;
     float value;

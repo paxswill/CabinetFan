@@ -15,6 +15,7 @@ ConstantSpeedController::ConstantSpeedController(
 
 void ConstantSpeedController::periodic(unsigned long currentMillis) {
   if (periodPassed(currentMillis, lastUpdate, FAN_UPDATE_PERIOD)) {
+    controllerDebug("new speed", value);
     lastUpdate = currentMillis;
     fan->setRPM((int)value);
   }
