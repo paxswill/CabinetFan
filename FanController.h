@@ -2,17 +2,18 @@
 #define FAN_FAN_CONTROLLER_H
 
 #include <float.h>
+#include <math.h>
 #include "Arduino.h"
 #include "Fan.h"
 
 class FanController {
   public:
-    FanController(Fan *fan, float minValue = FLT_MIN, float maxValue = FLT_MAX):
-      minValue(minValue),
-      maxValue(maxValue),
-      fan(fan),
-      value((maxValue - minValue) / 2)
-    {};
+    FanController(
+      Fan *fan,
+      float minValue = FLT_MIN,
+      float maxValue = FLT_MAX,
+      float initialValue = NAN
+    );
 
     // A short display name describing this controller type.
     const char * name;

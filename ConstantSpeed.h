@@ -1,11 +1,11 @@
 #ifndef FAN_CONSTANT_SPEED_H
 #define FAN_CONSTANT_SPEED_H
 
+#include <math.h>
 #include "FanController.h"
 class ConstantSpeedController: public FanController {
   public:
-    ConstantSpeedController(Fan *fan);
-    ConstantSpeedController(Fan *fan, float initialSpeed);
+    ConstantSpeedController(Fan *fan, float initialSpeed = NAN);
 
     // A short display name describing this controller type.
     const char * name = "Constant Speed";
