@@ -14,7 +14,7 @@ class ConstantSpeedController: public FanController {
     static const char * valueUnits;
 
     // A suggested amount to increment the set point value by.
-    const float valueStep = 100.0;
+    const float valueStep = 0.1;
 
     // Called each iteration of the run loop.
     virtual void periodic(unsigned long currentMillis);

@@ -10,13 +10,13 @@ ConstantSpeedController::ConstantSpeedController(
   Fan *fan,
   float initialSpeed
 ):
-  FanController(fan, fan->minRPM, fan->maxRPM, initialSpeed)
+  FanController(fan, 0.0, 1.0, initialSpeed)
 {}
 
 void ConstantSpeedController::periodic(unsigned long currentMillis) {
   if (periodPassed(currentMillis, lastUpdate, FAN_UPDATE_PERIOD)) {
     controllerDebug("new speed", value);
     lastUpdate = currentMillis;
-    fan->setRPM((int)value);
+    fan->setSpeed(value);
   }
 }
