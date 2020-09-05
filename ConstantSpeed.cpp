@@ -11,7 +11,9 @@ ConstantSpeedController::ConstantSpeedController(
   float initialSpeed
 ):
   FanController(fan, 0.0, 1.0, initialSpeed)
-{}
+{
+  this->name = "Constant Speed";
+}
 
 void ConstantSpeedController::periodic(unsigned long currentMillis) {
   if (periodPassed(currentMillis, lastUpdate, FAN_UPDATE_PERIOD)) {

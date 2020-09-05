@@ -7,9 +7,6 @@ class ConstantSpeedController: public FanController {
   public:
     ConstantSpeedController(Fan *fan, float initialSpeed = NAN);
 
-    // A short display name describing this controller type.
-    const char * name = "Constant Speed";
-
     // The abbreviation for the units for the set point.
     static const char * valueUnits;
 
