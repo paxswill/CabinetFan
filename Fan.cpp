@@ -76,12 +76,10 @@ uint8_t getInterruptIndex(uint8_t interruptNumber) {
 Fan::Fan(
   uint8_t controlPin,
   uint8_t sensePin,
-  PWMMode mode,
-  int minRPM
+  PWMMode mode
 ):
   controlPin(controlPin),
-  sensePin(sensePin),
-  minRPM(minRPM)
+  sensePin(sensePin)
 {
   setupPWM(mode);
   setupInterrupts();
@@ -100,12 +98,10 @@ Fan::Fan(
 Fan::Fan(
   uint8_t controlPin,
   int maxRPM,
-  int minRPM,
   PWMMode mode
 ):
   controlPin(controlPin),
   sensePin(Fan::NOT_SET),
-  minRPM(minRPM),
   maxRPM(maxRPM)
 {
   setupPWM(mode);

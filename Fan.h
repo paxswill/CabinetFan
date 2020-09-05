@@ -20,14 +20,12 @@ class Fan {
     Fan(
       uint8_t controlPin,
       uint8_t sensePin,
-      PWMMode mode = phaseFrequencyCorrect,
-      int minRPM = 0
+      PWMMode mode = phaseFrequencyCorrect
     );
 
     Fan(
       uint8_t controlPin,
       int maxRPM,
-      int minRPM = 0,
       PWMMode mode = phaseFrequencyCorrect
     );
 
@@ -50,9 +48,6 @@ class Fan {
      * most recently requested speed and the maximum fan speed.
      */
     const uint8_t sensePin;
-
-    // The minimum speed the fan can go, in rotations per minute.
-    const int minRPM;
 
     /* The maximum speed the fan can go, in rotations per minute. If `sensePin`
      * is set, this value is detected automatically.
