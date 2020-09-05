@@ -19,6 +19,8 @@ bool Fan::isExternalInterruptSetup[NUM_EXTERNAL_INTERRUPTS];
 static volatile uint16_t numTicks[NUM_EXTERNAL_INTERRUPTS];
 static unsigned long lastTickUpdate[NUM_EXTERNAL_INTERRUPTS];
 
+static const int RPM_UPDATE_PERIOD = 1000;
+
 // NOTE: within a multiline #define, "//" comments will break things
 #define setup16BitPWM(timerN) do {\
   if (!isTimer ## timerN ## Setup) {\
@@ -319,7 +321,7 @@ void Fan::periodic(unsigned long currentMillis) {
   // Update the current fan speed if we have a sense pin set.
   if (
     sensePin != NOT_SET &&
-    periodPassed(currentMillis, lastTickUpdate[interruptIndex], 1500)
+    periodPassed(currentMillis, lastTickUpdate[interruptIndex], RPM_UPDATE_PERIOD)
   ) {
     unsigned long period;
     if (currentMillis < lastTickUpdate[interruptIndex]) {
