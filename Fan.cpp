@@ -215,8 +215,8 @@ void Fan::setupInterrupts() {
       lastTickUpdate[interruptIndex] = millis();
       isExternalInterruptSetup[interruptIndex] = true;
     }
-    /* Initialize the last known RPM to 0. It should be updated about 1.5
-     * seconds after the fan is spun up.
+    /* Initialize the last known RPM to 0. It should be updated shortly after
+     * the fan is spun up.
      */
     lastKnownRPM = 0;
   }
@@ -372,10 +372,6 @@ void Fan::periodic(unsigned long currentMillis) {
       tickCount = numTicks[interruptIndex];
       numTicks[interruptIndex] = 0;
     }
-    /* Check to see if we waited too long between updates (very unlikely). If
-     * we have waited too long, just leave the last known RPM value in place
-     * and hope we check fast enough next time.
-     */
     float periodSeconds = (float)period / 1000.0;
     /* The tachometer signal transitions four times per rotation (twice up,
      * twice down).

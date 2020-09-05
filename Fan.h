@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* Hardcoding four external interrupts, tying this to the 32u4 pretty hard.
+/* Hardcoding five external interrupts, tying this to the 32u4 pretty hard.
  * Ordering is external interrupts 0, 1, 2, 3, 6 (with interrupt numbers
  * 1, 2, 3, 4, 7).
  */
