@@ -74,3 +74,14 @@ void FanController::controllerDebug(const char * message, unsigned long value) {
     Serial.println(value);
   }
 }
+
+void FanController::controllerDebug(const char * message, uint16_t value) {
+  if (debug) {
+    Serial.print("\t");
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.print(message);
+    Serial.print(": ");
+    Serial.println(value);
+  }
+}

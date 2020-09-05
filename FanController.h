@@ -56,6 +56,7 @@ class FanController {
     void controllerDebug(const char * message, const char * value);
     void controllerDebug(const char * message, float value);
     void controllerDebug(const char * message, unsigned long value);
+    void controllerDebug(const char * message, uint16_t value);
   protected:
     Fan *fan;
     float value;
