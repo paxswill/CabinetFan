@@ -76,17 +76,43 @@ uint8_t getInterruptIndex(uint8_t interruptNumber) {
 Fan::Fan(
   uint8_t controlPin,
   uint8_t sensePin,
-  int minRPM,
+  PWMMode mode,
+  int minRPM
+):
+  controlPin(controlPin),
+  sensePin(sensePin),
+  minRPM(minRPM)
+{
+  setupPWM(mode);
+  setupInterrupts();
+  /* To set maxRPM, we set a 100% duty cycle, wait a few seconds, then count
+   * the number of ticks that occured.
+   */
+  _setSpeed(1.0);
+  // delay() is safe to use here, as interrupts and PWM will still worked
+  // TODO: integrate the maxRPM discovery into normal periodic() operation.
+  delay(RPM_UPDATE_PERIOD * 2.);
+  periodic();
+  delay(RPM_UPDATE_PERIOD);
+  periodic();
+}
+
+Fan::Fan(
+  uint8_t controlPin,
   int maxRPM,
+  int minRPM,
   PWMMode mode
 ):
-  minRPM(minRPM),
-  maxRPM(maxRPM),
   controlPin(controlPin),
-  sensePin(sensePin)
+  sensePin(Fan::NOT_SET),
+  minRPM(minRPM),
+  maxRPM(maxRPM)
 {
-  // Set up PWM
-  pinMode(controlPin, OUTPUT);
+  setupPWM(mode);
+}
+
+void Fan::setupPWM(PWMMode mode) {
+  // Determine the TOP value
   topValue = F_CPU / F_CONTROL_PWM;
   if (mode == phaseCorrect || mode == phaseFrequencyCorrect) {
     /* The phase (and frequency) correct PWM modes count up and then back
@@ -95,6 +121,8 @@ Fan::Fan(
      */
     topValue /= 2;
   }
+  // Set up PWM
+  pinMode(controlPin, OUTPUT);
   switch (digitalPinToTimer(controlPin)) {
     case TIMER0A:
     case TIMER0B:
@@ -146,6 +174,9 @@ Fan::Fan(
       }
       break;
   }
+}
+
+void Fan::setupInterrupts() {
   // Set up external interrupts (if needed)
   if (sensePin != NOT_SET) {
     interruptIndex = digitalPinToInterrupt(sensePin);

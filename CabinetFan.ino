@@ -37,8 +37,7 @@ void setup() {
   * Noctua NF-S12A speed ranges from 300 to 1200 rpm
   * Gelid Silent 12 PWM speed ranges from 750 to 1500 rpm
   */
-  //fan = new Fan(controlPin, Fan::NOT_SET, 1200, 5000, phaseFrequencyCorrect);
-  fan = new Fan(controlPin, tachPin, 750, 1500, phaseFrequencyCorrect);
+  fan = new Fan(controlPin, tachPin, phaseFrequencyCorrect);
   fan->setSpeed(0.8);
   /* Create all fan controllers ahead of time, and then set `currentController`
    * as needed.
