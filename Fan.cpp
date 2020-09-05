@@ -151,7 +151,7 @@ Fan::Fan(
     interruptIndex = digitalPinToInterrupt(sensePin);
     uint8_t vectorNumber = interruptIndex + 1;
     if (!isExternalInterruptSetup[interruptIndex]) {
-      pinMode(sensePin, INPUT_PULLUP);
+      pinMode(sensePin, INPUT);
       switch (vectorNumber) {
         case 1:
         case 2:
@@ -165,7 +165,7 @@ Fan::Fan(
            * interrupt number, so we subtract one. And since we're shifting
            * everything over by 2 bit positions, we have to multiply by two.
            */
-          EICRA |= (3 << ((vectorNumber - 1) * 2));
+          EICRA |= (1 << ((vectorNumber - 1) * 2));
           break;
         case 7:
           /* As opposed to the other external interrupts, interrupt 6 is all by
@@ -346,10 +346,10 @@ void Fan::periodic(unsigned long currentMillis) {
      * and hope we check fast enough next time.
      */
     float periodSeconds = (float)period / 1000.0;
-    if (periodSeconds < UINT16_MAX / (maxRPM / 60.)) {
-      // The tachometer signal is pulsed *twice* for every rotation.
-      lastKnownRPM = (tickCount / 2 / periodSeconds);
-    }
+    /* The tachometer signal transitions four times per rotation (twice up,
+     * twice down).
+     */
+    lastKnownRPM = (tickCount / 4 * periodSeconds * 60.);
   }
 }
 
