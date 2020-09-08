@@ -1,7 +1,7 @@
 #include "Thermometer.h"
 #include <Arduino.h>
 
-float Thermometer::getTemperature() {
+float Thermometer::getTemperature() const {
   // For external TMP35 sensors this is easy
   if (this->pin != Thermometer::INTERNAL_SENSOR) {
     analogReference(INTERNAL);

@@ -39,7 +39,7 @@ class FanController {
 #endif
 
     // Get the current set point.
-    virtual float getValue();
+    virtual float getValue() const;
 
     // Set a new set point.
     virtual void setValue(float newValue);

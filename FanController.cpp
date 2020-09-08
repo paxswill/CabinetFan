@@ -21,7 +21,7 @@ FanController::FanController(
   }
 }
 
-float FanController::getValue() {
+float FanController::getValue() const {
   return value;
 }
 

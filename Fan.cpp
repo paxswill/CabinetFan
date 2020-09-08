@@ -222,7 +222,7 @@ void Fan::setupInterrupts() {
  * If `sensePin` is `NOT_SET`, the speed is assumed to be equal to the last
  * requested speed.
  */
-float Fan::getSpeed() {
+float Fan::getSpeed() const {
   if (sensePin == NOT_SET) {
     return currentSpeed;
   } else {
@@ -308,7 +308,7 @@ void Fan::_setSpeed(float fanSpeed) {
  * If `sensePin` is `NOT_SET`, the speed is estimated based on the last
  * requested fractional speed and the provided maximum speed.
  */
-uint16_t Fan::getRPM() {
+uint16_t Fan::getRPM() const {
   if (sensePin != NOT_SET) {
     return lastKnownRPM;
   } else {

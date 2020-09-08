@@ -29,10 +29,10 @@ class Fan {
       PWMMode mode = phaseFrequencyCorrect
     );
 
-    float getSpeed();
+    float getSpeed() const;
     void setSpeed(float fanSpeed);
 
-    uint16_t getRPM();
+    uint16_t getRPM() const;
     void setRPM(int rpmSpeed);
 
     void periodic();
