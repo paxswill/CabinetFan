@@ -34,3 +34,7 @@ float Thermometer::getTemperature() const {
     return adcValue - 273.0;
   }
 }
+
+size_t Thermometer::printTo(Print& p) const {
+  return p.print(getTemperature());
+}

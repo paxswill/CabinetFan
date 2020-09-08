@@ -6,7 +6,7 @@
 #include "Arduino.h"
 #include "Fan.h"
 
-class FanController {
+class FanController: public Printable {
   public:
     FanController(
       Fan *fan,
@@ -57,6 +57,9 @@ class FanController {
     void controllerDebug(const char * message, float value);
     void controllerDebug(const char * message, unsigned long value);
     void controllerDebug(const char * message, uint16_t value);
+
+    // Inheriting from Printable
+    virtual size_t printTo(Print& p) const;
   protected:
     Fan *fan;
     float value;

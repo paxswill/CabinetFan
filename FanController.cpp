@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "FanController.h"
 
+const char * FanController::valueUnits = NULL;
+
 FanController::FanController(
   Fan * fan,
   float minValue,
@@ -31,6 +33,16 @@ void FanController::setValue(float newValue) {
 
 void FanController::periodic() {
   periodic(millis());
+}
+
+size_t FanController::printTo(Print& p) const {
+  size_t total = 0;
+  total += p.print(name);
+  total += p.print(": ");
+  total += p.print(value);
+  total += p.print(" ");
+  total += p.print(this->valueUnits);
+  return total;
 }
 
 void FanController::controllerDebug(const char * message) {
