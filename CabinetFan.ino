@@ -4,9 +4,7 @@
 #include "Thermometer.h"
 #include "Fan.h"
 #include "util.h"
-#include "FanController.h"
-#include "ConstantSpeed.h"
-#include "PIDFanController.h"
+#include "Menu.h"
 
 // Pin Definitions are for the 32u4 Adafruit ItsyBitsy
 const byte tachPin = 0;     // Digital 0   PD2  INT2
@@ -16,10 +14,7 @@ const byte tempPin = A11;    // D12/A11     PD6  ADC9
 Thermometer externalThermo = Thermometer(tempPin);
 Thermometer internalThermo = Thermometer();
 Fan *fan;
-FanController *currentController;
-ConstantSpeedController *speedController;
-PIDFanController *pController;
-PIDFanController * pidController;
+Menu *menu;
 
 void setup() {
 #if DEBUG
@@ -39,45 +34,12 @@ void setup() {
   */
   fan = new Fan(controlPin, tachPin, phaseFrequencyCorrect);
   fan->setSpeed(0.8);
-  /* Create all fan controllers ahead of time, and then set `currentController`
-   * as needed.
-   */
-  speedController = new ConstantSpeedController(fan, 1.0);
-  Thermometer * currentThermometer = &externalThermo;
-  float targetTemp = 27.0;
-  pController = new PIDFanController(
-    fan,
-    currentThermometer,
-    "P Controller",
-    targetTemp,
-    // TODO: These values are garbage!
-    6, 0, 0
-  );
-  pidController = new PIDFanController(
-    fan,
-    currentThermometer,
-    "PID Controller",
-    targetTemp,
-    // TODO: These values are also garbage and need tuning!
-    6, 2.5, 1.3
-  );
-  // Right now there's only one controller implemented.
-  currentController = speedController;
+  menu = new Menu(fan, &externalThermo, &Serial);
 }
 
 // Implicitly set to 0
 unsigned long lastUpdate;
 
 void loop() {
-  unsigned long currentMillis = millis();
-  if (periodPassed(currentMillis, lastUpdate, 3000)) {
-
-    Serial.print("Current speed: ");
-    Serial.println(fan->getSpeed());
-    Serial.print("Current RPM:   ");
-    Serial.println(fan->getRPM());
-    lastUpdate = currentMillis;
-  }
-  fan->periodic(currentMillis);
-  currentController->periodic(currentMillis);
+  menu->control();
 }
