@@ -49,3 +49,4 @@ The ItsyBitsy is inserted into the socket with the USB port to the left. The fan
 is plugged in with in with an imaginary key slot towards the bottom of the
 board. A 12V, center positive AC-DC adapter is attached to the barrel plug on
 the right. It's not super clear, but there is a TMP36 on columns 16-18, row H.
+The 10k resistors are mounted vertically.
