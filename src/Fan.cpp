@@ -21,10 +21,28 @@ static unsigned long lastTickUpdate[NUM_EXTERNAL_INTERRUPTS];
 
 static const int RPM_UPDATE_PERIOD = 1000;
 
+/* I'm using preprocessor macros for the register configuration as there's a lot
+ * of repeated setup across the different timers and output ports. Additionally,
+ * there isn't an easy way to manipulate the names of the registers (which are
+ * defined as macros as well I believe), and passing the registers into
+ * functions isn't really that easy either.
+ * Macros on the other hand have string concatenation built in (with `##`), and
+ * don't care about how the register names are defined.
+ */
+
+/* Set up the 16-bit timers (aka Timer/Counter1 and Timer/Counter 3 on the 32u4)
+ * for PWM. This macro must be used in a context that has `topValue` and `mode`
+ * defined.
+ *
+ * `timerN` is a 16-bit Timer/Counter (either 1 or 3).
+ * `outPort` is one of the output port letters (A, B, or C).
+ */
 // NOTE: within a multiline #define, "//" comments will break things
-#define setup16BitPWM(timerN) do {\
+#define setup16BitPWM(timerN, outPort) do {\
+  /* Set the PWM output pins for the given timer and output port. */\
+  TCCR ## timerN ## outPort |= _BV(COM ## timerN ## outPort ## 1);\
+  TCCR ## timerN ## outPort &= ~_BV(COM ## timerN ## outPort ## 0);\
   if (!isTimer ## timerN ## Setup) {\
-    TCCR ## timerN ## A = _BV(COM ## timerN ## A1);\
     /* Set the clock prescaler to match the system clock one to one. */\
     TCCR ## timerN ## B = _BV(CS ## timerN ## 0);\
     /* Set up PWM using ICR. topValue is a previously set \
@@ -57,6 +75,39 @@ static const int RPM_UPDATE_PERIOD = 1000;
   reg = (uint8_t)value;\
   TC4H = 0;\
   /* ...and as a corralary, always clear TC4H once you're done. */ \
+} while(0);
+
+/* Set up the 10-bit PWM timers. THis is very similar to `setup16BitPWM`, except
+ * that there's only one 10-bit Timer/Counter; 4.
+ */
+#define setup10BitPWM() do {\
+  if (!isTimer4Setup) {\
+    /* As above, setting the clock scaler to match the system clock. */\
+    TCCR4B = _BV(CS40);
+    /* TOP is always set in OCR4C (which is conveniently *not* exposed on an \
+    * outside pin). \
+    */\
+    set10Bit(OCR4C, topValue);\
+    switch (mode) {\
+      case fast:\
+        /* Fast PWM is enabled with just the PWM4x bits with the WGM4 bits \
+        * unset. \
+        */\
+        break;\
+      case phaseCorrect:\
+      /* There is no phase correct PWM mode for Timer 4, only phase and \
+      * frequency correct. So instead of erroring out, just default to the \
+      * one that works. \
+      */\
+      case phaseFrequencyCorrect:\
+        /* Phase and frequency correct PWM is set by just setting the WGM40 \
+        * bit along with the appropriate PWM4x bit(s). \
+        */ \
+        TCCR4D = _BV(WGM40);\
+        break;\
+    }\
+    isTimer4Setup = true;\
+  }\
 } while(0);
 
 /* Given an external interrupt vector number (on the 32u4, 1-4, 7), return the
@@ -126,48 +177,59 @@ void Fan::setupPWM(PWMMode mode) {
        * for millis()/micros() (and delay() I think).
        */
       break;
+    // Timer/Counter1, 16-bits
+    // Enable the output pins for PWM.
     case TIMER1A:
+      setup16BitPWM(1, A);
+      break;
     case TIMER1B:
+      setup16BitPWM(1, B);
+      break;
     case TIMER1C:
-      setup16BitPWM(1);
+      setup16BitPWM(1, C);
       break;
+    // Timer/Counter3, 16-bits
+    // Enable the output pins for PWM.
     case TIMER3A:
-    case TIMER3B:
-    case TIMER3C:
-      setup16BitPWM(3);
+      setup16BitPWM(3, A);
       break;
+    case TIMER3B:
+      setup16BitPWM(3, B);
+      break;
+    case TIMER3C:
+      setup16BitPWM(3, C);
+      break;
+    /* Timer/Counter4, 10-bits, high speed.
+     * Unlike the 16-bit timers, Timer/Counter4 uses different registers for
+     * enabling different output ports. This doesn't fit easily into the
+     * `setup10BitPWM` macro, so it's being done in this `switch` statement.
+     */
     case TIMER4A:
+      // OC4A is enabled in TCCR4A.
+      TCCR4A |= _BV(COM4A1);
+      // Explicitly unset this pin to disable ~OC4A (aka OC4A complement) port.
+      TCCR4A &= ~_BV(COM4A0);
+      setup10BitPWM();
+      break;
     case TIMER4B:
-    case TIMER4C:
-    case TIMER4D:
-      if (!isTimer4Setup) {
-        TCCR4A = _BV(COM4A1);
-        // As above, setting the clock scaler to match the system clock
-        TCCR4B = _BV(CS40);
-        /* TOP is always set in OCR4C (which is conveniently *not* exposed on an
-        * outside pin).
-        */
-        set10Bit(OCR4C, topValue);
-        switch (mode) {
-          case fast:
-            /* Fast PWM is enabled with just the PWM4x bits with the WGM4 bits
-            * unset.
-            */
+      // OC4B is also enabled in TCCR4A.
+      TCCR4A |= _BV(COM4B1);
+      // As above, disabling ~OC4B.
+      TCCR4A &= ~_BV(COM4B0);
+      setup10BitPWM();
             break;
-          case phaseCorrect:
-          /* There is no phase correct PWM mode for Timer 4, only phase and
-          * frequency correct. So instead of erroring out, just default to the
-          * one that works.
+    /* Skipping TIMER4C as OCR4C (the corresponding Output Compare Register)
+     * isn't exposed on an external pin so it can't be used for PWM. OCR4C is
+     * also used for setting the TOP value for the other timers.
           */
-          case phaseFrequencyCorrect:
-            /* Phase and frequency correct PWM is set by just setting the WGM40
-            * bit along with the appropriate PWM4x bit(s).
+    case TIMER4D:
+      /* OC4D is enabled in TCCR4_C_. Additionally, shadow bits in TCCR4C have
+       * no relevanance to us.
             */
-            TCCR4D = _BV(WGM40);
-            break;
-        }
-        isTimer4Setup = true;
-      }
+      TCCR4C |= _BV(COM4D1);
+      // Ditto on disabling ~OC4D.
+      TCCR4C &= ~_BV(COM4D0);
+      setup10BitPWM();
       break;
   }
 }
