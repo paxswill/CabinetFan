@@ -17,19 +17,48 @@ enum PWMMode {
 
 class Fan {
   public:
+    /* Create a `Fan` that is able to detect the actual speed with a tachometer
+     * pin.
+     *
+     * ` controlPin` - An Arduino PWM output pin connected to either a 16-bit or
+     * 10-bit Timer/Counter.
+     * `sensePin` - An Arduino pin number that is able to be used as an external
+     * interrupt.
+     * `mode` - A `PWMMode` defining the specifics of the PWM signal.
+     */
     Fan(
       uint8_t controlPin,
       uint8_t sensePin,
       PWMMode mode = phaseFrequencyCorrect
     );
 
+    /* Create a `Fan` that is *not* able to detect the actual speed of the
+     * attached fan.
+     *
+     * ` controlPin` - An Arduino PWM output pin connected to either a 16-bit or
+     * 10-bit Timer/Counter.
+     * `maxRPM` - The maximum RPM of the attached fan.
+     * `mode` - A `PWMMode` defining the specifics of the PWM signal.
+     */
     Fan(
       uint8_t controlPin,
       int maxRPM,
       PWMMode mode = phaseFrequencyCorrect
     );
 
+    // Get the current speed of the attached fan as a range from 0.0 to 1.0.
     float getSpeed() const;
+
+    /* Set the speed of the attached fan.
+     *
+     * If the requested speed is less than 30% of the maximum and the fan is
+     * currently stopped, a ramp up cycle is started. The fan is started at a
+     * 30% duty cycle for 2 seconds, then the speed is lowered to the
+     * requested level.
+     *
+     * `fanSpeed` - The requested fan speed as a value between 0.0 and 1.0.
+     * Values outside of this range will be clamped to that range.
+     */
     void setSpeed(float fanSpeed);
 
     uint16_t getRPM() const;
@@ -55,9 +84,9 @@ class Fan {
     int maxRPM;
 
     /* The TOP value used for the PWM signal. See the appropriate pages in the
-     * SRM for details on how it affects the PWM signal. Alternatively, read
-     * Ken Shirriff's "Secrets of Arduino PWM" article for a different (shorter)
-     * explanation.
+     * datasheet for details on how it affects the PWM signal. Alternatively,
+     * read Ken Shirriff's "Secrets of Arduino PWM" article for a different
+     * (shorter) explanation.
      */
     int topValue;
 
@@ -79,10 +108,15 @@ class Fan {
     // The last requested speed (as a percentage of the maximum speed).
     float currentSpeed = 0.0;
 
-    // The last know sensed RPM.
+    // The last known sensed RPM.
     uint16_t lastKnownRPM;
 
-    // These are all initialized to 0, which is equivalent to false
+    /* Flags to ensure a timer is not double-configured. It shouldn't hurt
+     * anything if it is, but it might be able to disrupt an operating signal.
+     *
+     * These values are all initialized to 0 (which is equivalent to false) by
+     * nature of being declared static.
+     */
     static bool isTimer1Setup;
     static bool isTimer3Setup;
     static bool isTimer4Setup;

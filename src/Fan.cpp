@@ -4,21 +4,24 @@
 #include "Fan.h"
 #include "util.h"
 
-// The 4-pin fan spec says the PWM frequency should be 25kHz
+// The 4-pin fan spec says the PWM frequency should be 25kHz.
 #define F_CONTROL_PWM 25000
 
-// Declare the actual "instances" of the static members in the Fan class
+// Declare the actual "instances" of the static members in the Fan class.
 bool Fan::isTimer1Setup;
 bool Fan::isTimer3Setup;
 bool Fan::isTimer4Setup;
 bool Fan::isExternalInterruptSetup[NUM_EXTERNAL_INTERRUPTS];
 
 /* Keep track of how many times the fan has "ticked" and when we last
- * calculated the RPMs of the fan.
+ * calculated the RPMs of the fans.
  */
 static volatile uint16_t numTicks[NUM_EXTERNAL_INTERRUPTS];
 static unsigned long lastTickUpdate[NUM_EXTERNAL_INTERRUPTS];
 
+/* How frequently (in milliseconds) to update the RPM when a tachometer pin is
+ * defined.
+ */
 static const int RPM_UPDATE_PERIOD = 1000;
 
 /* I'm using preprocessor macros for the register configuration as there's a lot
@@ -67,7 +70,7 @@ static const int RPM_UPDATE_PERIOD = 1000;
 } while(0);
 
 /* Helper macro for setting 10-bit values for Timer 4. See section 15.11 in the
- * SRM for more details.
+ * 32u4 datasheet for more details.
  */
 #define set10Bit(reg, value) do{\
   /* NOTE: *Always* set TC4H, as its value will always be used for setting. */ \
@@ -135,7 +138,7 @@ Fan::Fan(
   setupPWM(mode);
   setupInterrupts();
   /* To set maxRPM, we set a 100% duty cycle, wait a few seconds, then count
-   * the number of ticks that occured.
+   * the number of ticks that occurred.
    */
   _setSpeed(1.0);
   // delay() is safe to use here, as interrupts and PWM will still worked
@@ -168,14 +171,24 @@ void Fan::setupPWM(PWMMode mode) {
      */
     topValue /= 2;
   }
-  // Set up PWM
+  // Set the data direction register (DDR) for output.
   pinMode(controlPin, OUTPUT);
+  /* For a detailed description of what's going on here, refer to the 32u4
+   * datasheet, specifically the Register Description subsections for the
+   * "16-bit Timers/Counters (Timer/Counter1 and Timer/Counter3)" (section 14)
+   * and "10-bit High Speed TImer/Counter4" (section 15). Section 12 is also
+   * relevant in discussing the prescaler configuration.
+   *
+   * `digitalPinToTimer()` is an Arduino-specific macro/function for converting
+   * the Arduino pin numbers to the avr-libc timer names.
+   */
   switch (digitalPinToTimer(controlPin)) {
+    /* Timer/Counter0 is not supported as it's used for Arduino time-keeping
+     * functions (millis(), micros(), delay() as well I think). It's also an
+     * 8-bit counter, which might be a bit limiting.
+     */
     case TIMER0A:
     case TIMER0B:
-      /* Timer 0 is not supported as it's used by Arduino already
-       * for millis()/micros() (and delay() I think).
-       */
       break;
     // Timer/Counter1, 16-bits
     // Enable the output pins for PWM.
@@ -217,15 +230,15 @@ void Fan::setupPWM(PWMMode mode) {
       // As above, disabling ~OC4B.
       TCCR4A &= ~_BV(COM4B0);
       setup10BitPWM();
-            break;
+      break;
     /* Skipping TIMER4C as OCR4C (the corresponding Output Compare Register)
      * isn't exposed on an external pin so it can't be used for PWM. OCR4C is
      * also used for setting the TOP value for the other timers.
-          */
+     */
     case TIMER4D:
       /* OC4D is enabled in TCCR4_C_. Additionally, shadow bits in TCCR4C have
        * no relevanance to us.
-            */
+       */
       TCCR4C |= _BV(COM4D1);
       // Ditto on disabling ~OC4D.
       TCCR4C &= ~_BV(COM4D0);
@@ -237,6 +250,7 @@ void Fan::setupPWM(PWMMode mode) {
 void Fan::setupInterrupts() {
   // Set up external interrupts (if needed)
   if (sensePin != NOT_SET) {
+    // TODO: untangle this mess of different numbering schemes.
     interruptIndex = digitalPinToInterrupt(sensePin);
     uint8_t vectorNumber = interruptIndex + 1;
     if (!isExternalInterruptSetup[interruptIndex]) {
@@ -382,7 +396,7 @@ uint16_t Fan::getRPM() const {
   }
 }
 
-// An inexact method of setting the fan speed by a target RPM.
+// An inexact method of setting the fan speed by giving a target RPM.
 void Fan::setRPM(int rpmSpeed) {
   setSpeed(rpmSpeed / maxRPM);
 }
@@ -395,7 +409,7 @@ void Fan::periodic() {
   periodic(millis());
 }
 
-/* Handle various period tasks. This mehod should be called roughly every
+/* Handle various period tasks. This method should be called roughly every
  * second or so.
  */
 void Fan::periodic(unsigned long currentMillis) {
