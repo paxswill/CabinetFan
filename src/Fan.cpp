@@ -24,6 +24,9 @@ static unsigned long lastTickUpdate[NUM_EXTERNAL_INTERRUPTS];
  */
 static const int RPM_UPDATE_PERIOD = 1000;
 
+// Sentinel value for when a tachometer pin is not connected.
+static const uint8_t NOT_SET = UINT8_MAX;
+
 /* I'm using preprocessor macros for the register configuration as there's a lot
  * of repeated setup across the different timers and output ports. Additionally,
  * there isn't an easy way to manipulate the names of the registers (which are
@@ -155,7 +158,7 @@ Fan::Fan(
   PWMMode mode
 ):
   controlPin(controlPin),
-  sensePin(Fan::NOT_SET),
+  sensePin(NOT_SET),
   maxRPM(maxRPM)
 {
   setupPWM(mode);
@@ -381,7 +384,7 @@ void Fan::_setSpeed(float fanSpeed) {
 }
 
 /* Get the current fan speed in rotations per minute.
- * If `sensePin` is `NOT_SET`, the speed is estimated based on the last
+ * If a tachometer pin was not given, the speed is estimated based on the last
  * requested fractional speed and the provided maximum speed.
  */
 uint16_t Fan::getRPM() const {

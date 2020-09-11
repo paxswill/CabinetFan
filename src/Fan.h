@@ -67,7 +67,6 @@ class Fan {
     void periodic();
     void periodic(unsigned long currentMillis);
 
-    static const uint8_t NOT_SET = UINT8_MAX;
   private:
     // The Arduino pin the PWM signal is generated on.
     const uint8_t controlPin;
