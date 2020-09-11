@@ -38,5 +38,6 @@ class Menu {
     void rootMenu(char command);
     void printStatus() const;
     void printHelp() const;
+    void editValue();
 };
 #endif

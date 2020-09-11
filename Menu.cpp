@@ -96,6 +96,7 @@ void Menu::rootMenu(char command) {
     case 'e':
     case 'E':
       // _E_dit values
+      editValue();
       break;
     case 'r':
     case 'R':
@@ -141,4 +142,32 @@ void Menu::printHelp() const {
     "\n"
     "Any unknown command shows this help text."
   ));
+}
+
+void Menu::editValue() {
+  // Print the current value
+  controlInterface->print("Current value: ");
+  controlInterface->print(controller->getValue());
+  controlInterface->print(" ");
+  controlInterface->println(controller->valueUnits);
+  // Give the limits
+  float minValue = controller->minValue;
+  float maxValue = controller->maxValue;
+  controlInterface->print("Enter a value between ");
+  controlInterface->print(minValue);
+  controlInterface->print(" and ");
+  controlInterface->print(maxValue);
+  controlInterface->print(": ");
+  /* Start reading in a new value. Give a larger timeout to read the prompt and
+   * enter a number.
+   */
+  controlInterface->setTimeout(10000);
+  float newValue = controlInterface->parseFloat();
+  if (newValue < minValue || newValue > maxValue) {
+    controlInterface->println("Out of range value entered. Ignoring.");
+  } else {
+    settings.setValue(newValue);
+    controller->setValue(newValue);
+    controlInterface->println("New value set. Settings have NOT been saved.");
+  }
 }
