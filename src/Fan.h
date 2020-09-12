@@ -126,6 +126,7 @@ class Fan {
 
     // Private setup methods
     void setupPWM(PWMMode mode);
+    void setup10BitPWM(PWMMode mode);
     void setupInterrupts();
 };
 #endif
