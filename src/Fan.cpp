@@ -55,6 +55,9 @@ static const uint8_t NOT_SET = UINT8_MAX;
     * member of the Fan class. \
     */\
     ICR ## timerN = topValue;\
+    /* Clear the WGM bits before setting the new values. */\
+    TCCR ## timerN ## A &= ~(_BV(WGM ## timerN ## 0) | _BV(WGM ## timerN ## 1));\
+    TCCR ## timerN ## B &= ~(_BV(WGM ## timerN ## 2) | _BV(WGM ## timerN ## 3));\
     switch (mode) {\
       case fast:\
         TCCR ## timerN ## A |= _BV(WGM ## timerN ## 1);\
