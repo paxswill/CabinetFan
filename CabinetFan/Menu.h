@@ -39,5 +39,6 @@ class Menu {
     void printStatus() const;
     void printHelp() const;
     void editValue();
+    void changeController();
 };
 #endif

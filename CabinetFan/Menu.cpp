@@ -2,6 +2,9 @@
 #include "Menu.h"
 #include "util.h"
 
+// The timeout when waiting for input from the user over serial
+static int INPUT_TIMEOUT = 5000;
+
 Menu::Menu(
   Fan *fan,
   Thermometer *thermometer,
@@ -92,6 +95,7 @@ void Menu::rootMenu(char command) {
     case 'c':
     case 'C':
       // _C_hange controller
+      changeController();
       break;
     case 'e':
     case 'E':
@@ -167,7 +171,7 @@ void Menu::editValue() {
   /* Start reading in a new value. Give a larger timeout to read the prompt and
    * enter a number.
    */
-  controlInterface->setTimeout(10000);
+  controlInterface->setTimeout(INPUT_TIMEOUT);
   float newValue = controlInterface->parseFloat();
   if (newValue < minValue || newValue > maxValue) {
     controlInterface->println("Out of range value entered. Ignoring.");
@@ -176,4 +180,37 @@ void Menu::editValue() {
     controller->setValue(newValue);
     controlInterface->println("New value set. Settings have NOT been saved.");
   }
+}
+
+void Menu::changeController() {
+  // Print the current controller and what the options are.
+  controlInterface->print("Current controller: ");
+  controlInterface->println(*controller);
+  controlInterface->println("Available controllers:");
+  controlInterface->println("\tconstant");
+  controlInterface->println("\tproportional");
+  controlInterface->println("\tpid");
+  // Get the new controller
+  controlInterface->setTimeout(INPUT_TIMEOUT);
+  String controllerInput = controlInterface->readStringUntil('\r');
+  controllerInput.trim();
+  ControllerType newController;
+  if (controllerInput.equalsIgnoreCase(String("constant"))) {
+    newController = ControllerType::constant;
+    controlInterface->println("Changing to constant speed controller");
+  } else if (controllerInput.equalsIgnoreCase(String("proportional"))) {
+    newController = ControllerType::proportional;
+    controlInterface->println("Changing to proportional speed controller");
+  } else if (controllerInput.equalsIgnoreCase(String("pid"))) {
+    newController = ControllerType::pid;
+    controlInterface->println("Changing to PID controller");
+  } else {
+    controlInterface->print("Unknown controller type \"");
+    controlInterface->print(controllerInput);
+    controlInterface->println("\"");
+    return;
+  }
+  settings.setController(newController);
+  delete controller;
+  controller = settings.createCurrentController(fan, thermometer);
 }
