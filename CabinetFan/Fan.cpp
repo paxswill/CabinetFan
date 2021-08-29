@@ -86,42 +86,6 @@ static const uint8_t NOT_SET = UINT8_MAX;
   /* ...and as a corralary, always clear TC4H once you're done. */ \
 } while(0);
 
-<<<<<<< HEAD:CabinetFan/Fan.cpp
-/* Set up the 10-bit PWM timers. THis is very similar to `setup16BitPWM`, except
- * that there's only one 10-bit Timer/Counter; 4.
- */
-#define setup10BitPWM() do {\
-  if (!isTimer4Setup) {\
-    /* As above, setting the clock scaler to match the system clock. */\
-    TCCR4B = _BV(CS40); \
-    /* TOP is always set in OCR4C (which is conveniently *not* exposed on an \
-    * outside pin). \
-    */\
-    set10Bit(OCR4C, topValue);\
-    switch (mode) {\
-      case fast:\
-        /* Fast PWM is enabled with just the PWM4x bits with the WGM4 bits \
-        * unset. \
-        */\
-        break;\
-      case phaseCorrect:\
-      /* There is no phase correct PWM mode for Timer 4, only phase and \
-      * frequency correct. So instead of erroring out, just default to the \
-      * one that works. \
-      */\
-      case phaseFrequencyCorrect:\
-        /* Phase and frequency correct PWM is set by just setting the WGM40 \
-        * bit along with the appropriate PWM4x bit(s). \
-        */ \
-        TCCR4D = _BV(WGM40);\
-        break;\
-    }\
-    isTimer4Setup = true;\
-  }\
-} while(0);
-
-=======
->>>>>>> origin/main:src/Fan.cpp
 /* Given an external interrupt vector number (on the 32u4, 1-4, 7), return the
  * index for that vector in the `numTicks` and `isExternalInterruptSetup`
  * arrays.
