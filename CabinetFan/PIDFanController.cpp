@@ -56,23 +56,27 @@ void PIDFanController::periodic(unsigned long currentMillis) {
        */
       fan->setSpeed(0.0);
     } else {
-      // TODO: Is this operation backwards (temp - value)?
-      const float error = temp - value;
+      const float error = value - temp;
       controllerDebug("error", error);
       float correction = 0.0;
       // Proportional.
       correction += k_p * error;
       controllerDebug("Correction after Kp", correction);
+      // Derivative.
+      correction += k_d * ((error - previousError) / elapsedSeconds);
+      controllerDebug("Correction after Kd", correction);
+      // When the error crosses the setpoint, reset the integral
+      if (signbit(previousError) != signbit(error)) {
+        errorIntegral = 0.0;
+      }
+      previousError = error;
       // Integral. Only bother updating it if integral control is enabled.
-      if (k_i != 0) {
+      if (k_i != 0.0) {
         errorIntegral += error * elapsedSeconds;
         controllerDebug("Error integral", errorIntegral);
         correction += k_i * errorIntegral;
         controllerDebug("Correction after Ki", correction);
       }
-      // Derivative.
-      correction += k_d * ((error - previousError) / elapsedSeconds);
-      controllerDebug("Correction after Kd", correction);
       // Apply the correction and set a new speed as needed.
       float currentSpeed = fan->getSpeed();
       controllerDebug("Current Speed", currentSpeed);
