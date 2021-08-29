@@ -15,6 +15,8 @@ class FanController: public Printable {
       float initialValue = NAN
     );
 
+    virtual ~FanController() {}
+
     // A short display name describing this controller type.
     const char * name;
 

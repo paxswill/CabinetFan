@@ -21,7 +21,7 @@ class Menu {
   private:
     Fan *fan;
 
-    const Thermometer *thermometer;
+    Thermometer *thermometer;
 
     Settings settings = Settings();
 
