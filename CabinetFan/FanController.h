@@ -52,6 +52,7 @@ class FanController: public Printable {
     // Called each iteration of the run loop.
     virtual void periodic(unsigned long currentMillis) = 0;
 
+    void toggleDebug();
     void controllerDebug(const char * message);
     void controllerDebug(const char * message, const char * value);
     void controllerDebug(const char * message, float value);

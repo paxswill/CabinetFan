@@ -102,6 +102,11 @@ void Menu::rootMenu(char command) {
     case 'R':
       // _R_ecalibrate fan limits
       break;
+    case 'd':
+    case 'D':
+      // Toggle fan controller _D_ebug
+      controller->toggleDebug();
+      break;
     default:
       // Print help
       controlInterface->print("Unrecognized command ");
@@ -132,14 +137,15 @@ void Menu::printStatus() const {
 void Menu::printHelp() const {
   // This is a big string, so store it in flash
   controlInterface->println(F(
-    "Available commands:\n"
-    "s - Save current values to EEPROM.\n"
-    "p - Print current values.\n"
-    "l - Continuously log fan RPM once per second.\n"
-    "c - Change the current controller.\n"
-    "e - Change the current controller value.\n"
-    "r - Recalibrate fan limits.\n"
-    "\n"
+    "Available commands:\r\n"
+    "s - Save current values to EEPROM.\r\n"
+    "p - Print current values.\r\n"
+    "l - Continuously log fan RPM once per second.\r\n"
+    "c - Change the current controller.\r\n"
+    "e - Change the current controller value.\r\n"
+    "r - Recalibrate fan limits.\r\n"
+    "d - Toggle fan controller debug logging.\r\n"
+    "\r\n"
     "Any unknown command shows this help text."
   ));
 }

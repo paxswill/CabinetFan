@@ -45,6 +45,10 @@ size_t FanController::printTo(Print& p) const {
   return total;
 }
 
+void FanController::toggleDebug() {
+  debug = !debug;
+}
+
 void FanController::controllerDebug(const char * message) {
   if (debug) {
     Serial.print("\t");
