@@ -456,6 +456,7 @@ void Fan::periodic(unsigned long currentMillis) {
      * twice down).
      */
     lastKnownRPM = (tickCount / 4 * periodSeconds * 60.);
+    maxRPM = max(lastKnownRPM, maxRPM);
   }
 }
 
