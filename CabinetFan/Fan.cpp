@@ -89,7 +89,7 @@ static const uint8_t NOT_SET = UINT8_MAX;
 #define setup10BitPWM() do {\
   if (!isTimer4Setup) {\
     /* As above, setting the clock scaler to match the system clock. */\
-    TCCR4B = _BV(CS40);
+    TCCR4B = _BV(CS40); \
     /* TOP is always set in OCR4C (which is conveniently *not* exposed on an \
     * outside pin). \
     */\
