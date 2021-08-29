@@ -55,6 +55,9 @@ static const uint8_t NOT_SET = UINT8_MAX;
     * member of the Fan class. \
     */\
     ICR ## timerN = topValue;\
+    /* Clear the WGM bits before setting the new values. */\
+    TCCR ## timerN ## A &= ~(_BV(WGM ## timerN ## 0) | _BV(WGM ## timerN ## 1));\
+    TCCR ## timerN ## B &= ~(_BV(WGM ## timerN ## 2) | _BV(WGM ## timerN ## 3));\
     switch (mode) {\
       case fast:\
         TCCR ## timerN ## A |= _BV(WGM ## timerN ## 1);\
@@ -75,7 +78,7 @@ static const uint8_t NOT_SET = UINT8_MAX;
 /* Helper macro for setting 10-bit values for Timer 4. See section 15.11 in the
  * 32u4 datasheet for more details.
  */
-#define set10Bit(reg, value) do{\
+#define set10Bit(reg, value) do {\
   /* NOTE: *Always* set TC4H, as its value will always be used for setting. */ \
   TC4H = value >> 8;\
   reg = (uint8_t)value;\
@@ -83,6 +86,7 @@ static const uint8_t NOT_SET = UINT8_MAX;
   /* ...and as a corralary, always clear TC4H once you're done. */ \
 } while(0);
 
+<<<<<<< HEAD:CabinetFan/Fan.cpp
 /* Set up the 10-bit PWM timers. THis is very similar to `setup16BitPWM`, except
  * that there's only one 10-bit Timer/Counter; 4.
  */
@@ -116,6 +120,8 @@ static const uint8_t NOT_SET = UINT8_MAX;
   }\
 } while(0);
 
+=======
+>>>>>>> origin/main:src/Fan.cpp
 /* Given an external interrupt vector number (on the 32u4, 1-4, 7), return the
  * index for that vector in the `numTicks` and `isExternalInterruptSetup`
  * arrays.
@@ -225,14 +231,14 @@ void Fan::setupPWM(PWMMode mode) {
       TCCR4A |= _BV(COM4A1);
       // Explicitly unset this pin to disable ~OC4A (aka OC4A complement) port.
       TCCR4A &= ~_BV(COM4A0);
-      setup10BitPWM();
+      setup10BitPWM(mode);
       break;
     case TIMER4B:
       // OC4B is also enabled in TCCR4A.
       TCCR4A |= _BV(COM4B1);
       // As above, disabling ~OC4B.
       TCCR4A &= ~_BV(COM4B0);
-      setup10BitPWM();
+      setup10BitPWM(mode);
       break;
     /* Skipping TIMER4C as OCR4C (the corresponding Output Compare Register)
      * isn't exposed on an external pin so it can't be used for PWM. OCR4C is
@@ -245,8 +251,42 @@ void Fan::setupPWM(PWMMode mode) {
       TCCR4C |= _BV(COM4D1);
       // Ditto on disabling ~OC4D.
       TCCR4C &= ~_BV(COM4D0);
-      setup10BitPWM();
+      setup10BitPWM(mode);
       break;
+  }
+}
+
+/* Set up the 10-bit PWM timers. This is very similar to `setup16BitPWM`, except
+ * that there's only one 10-bit Timer/Counter (4). Because there's also no need
+ * for variable register names, this can be a normal function.
+ */
+void Fan::setup10BitPWM(PWMMode mode) {
+  if (!isTimer4Setup) {
+    /* As above, setting the clock scaler to match the system clock. */
+    TCCR4B = _BV(CS40);
+    /* TOP is always set in OCR4C (which is conveniently *not* exposed on an
+    * outside pin).
+    */
+    set10Bit(OCR4C, topValue);
+    switch (mode) {
+      case fast:
+        /* Fast PWM is enabled with just the PWM4x bits with the WGM4 bits
+        * unset.
+        */
+        break;
+      case phaseCorrect:
+      /* There is no phase correct PWM mode for Timer 4, only phase and
+      * frequency correct. So instead of erroring out, just default to the
+      * one that works.
+      */
+      case phaseFrequencyCorrect:
+        /* Phase and frequency correct PWM is set by just setting the WGM40
+        * bit along with the appropriate PWM4x bit(s).
+        */
+        TCCR4D = _BV(WGM40);
+        break;
+    }
+    isTimer4Setup = true;
   }
 }
 
