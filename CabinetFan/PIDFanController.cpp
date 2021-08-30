@@ -56,7 +56,7 @@ void PIDFanController::periodic(unsigned long currentMillis) {
        */
       fan->setSpeed(0.0);
     } else {
-      const float error = value - temp;
+      const float error = temp - value;
       controllerDebug("error", error);
       float correction = 0.0;
       // Proportional.
@@ -73,6 +73,8 @@ void PIDFanController::periodic(unsigned long currentMillis) {
       // Integral. Only bother updating it if integral control is enabled.
       if (k_i != 0.0) {
         errorIntegral += error * elapsedSeconds;
+        // Constrain the error integral to 1000
+        errorIntegral = min(errorIntegral, 1000.0);
         controllerDebug("Error integral", errorIntegral);
         correction += k_i * errorIntegral;
         controllerDebug("Correction after Ki", correction);

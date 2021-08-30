@@ -10,9 +10,9 @@
  * on-line tuning).
  */
 const float DEFAULT_K_P = 0.02;
-const float DEFAULT_K_I = 0.0;
+const float DEFAULT_K_I = 0.02;
 const float DEFAULT_K_D = 0.05;
-const float DEFAULT_SET_POINT = 30.0;
+const float DEFAULT_SET_POINT = 28.5;
 const unsigned long DEFAULT_PERIOD = 5000;
 // Default value for the constant speed controller
 const float DEFAULT_SPEED = 1500;
