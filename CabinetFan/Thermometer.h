@@ -14,6 +14,12 @@ class Thermometer: public Printable {
     // Inheriting from Printable
     virtual size_t printTo(Print& p) const;
   private:
+    // The pin the temperature sensor is connected to.
     const uint8_t pin;
+
+    /* Convenience function for determining if the internal temperature sensor
+     * is being used.
+     */
+    bool isInternalSensor() const;
 };
 #endif

@@ -1,40 +1,102 @@
 #include "Thermometer.h"
 #include <Arduino.h>
 
+// The internal reference voltage for the ADC (in mV).
+static const float V_REF = 2560;
+
+// The resolution of the ADC (10 bits).
+static const float ADC_RESOLUTION = 1023.0;
+
+// Conversion offset for Kelvins to degrees Celsius.
+static const float KELVIN_CELSIUS = 273.15;
+
+/* External temperature sensor output voltage scaling (in mV per degree
+ * Celsius). This value is for the TMP36 (and TMP35).
+ */
+static const float EXTERNAL_SENSOR_SCALING = 10.0;
+
+// Offset voltage (in mV) for the external temperature sensor (TMP36).
+static const float EXTERNAL_SENSOR_OFFSET = 500.0;
+
 float Thermometer::getTemperature() const {
-  // For external TMP35 sensors this is easy
-  if (this->pin != Thermometer::INTERNAL_SENSOR) {
-    analogReference(INTERNAL);
-    int adcValue = analogRead(this->pin);
-    return 100.0 * ((float)adcValue / 1023.0 * 2.56) - 50.0;
+  // Doing this manually for a bit more control over how the ADC conversion is
+  // performed.
+  /* The ADC channels are split between 0-7 and 8-15. The upper channels have
+    * MUX5 set, while the lower ones have it unset. MUX0 through MUX2 then
+    * encode the channel within the range. The internal temperature sensor is
+    * equivalent to channel 15.
+    */
+  uint8_t adcChannel;
+  if (isInternalSensor()) {
+    adcChannel = 15;
   } else {
-    // NOTE: this is only implemented for the 32u4
-    /* Overview of the process:
-     * Select the internal voltage source, select the internal temperature
-     * sensor from the ADC muxer, then do _two_ conversions, as it takes
-     * that long to switch over to the internal temperature sensor. The
-     * value from second conversion is then used to calculate the
-     * temperature.
+    /* The mapping between pins and channels is weird for the 32u4, and there's
+     * some hacks in the Arduino source to allow using pinx or channel numbers.
      */
-    ADMUX = _BV(REFS1) | _BV(REFS0) | _BV(MUX2) | _BV(MUX1) | _BV(MUX0);
+    adcChannel = analogPinToChannel(pin >= 18 ? pin - 18 : pin);
+  }
+  /* Check which channel the muxer is currently set to (if it's set to the
+   * internal temperature sensor, we can skip a conversion).
+   * Because the upper channels are encoded in bit 5 (which is stored in
+   * ADCSRB), that bit is shifted over by 2 so it corresponds to the channel
+   * numbers.
+   */
+  uint8_t oldChannel = (ADMUX & 0x7) | ((ADCSRB & 0x20) >> 2);
+  // Set ADMUX to use the internal voltage reference and the correct channel.
+  // Set the muxer to correct channel, and use the internal voltage source.
+  uint8_t newADMUX = _BV(REFS1) | _BV(REFS0);
+  newADMUX |= adcChannel & 0x7;
+  // Set MUX5 along with the other MUX bits
+  ADMUX = newADMUX;
+  if (adcChannel > 7) {
     ADCSRB |= _BV(MUX5);
-    // Double conversion time
+  } else {
+    ADCSRB &= ~_BV(MUX5);
+  }
+  /* Setting all the bits in ADCSRA. Setting ADPS2 and ADPS1 sets the 64x
+   * prescaler.
+   */
+  ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1);
+  /* The ADC frequency needs to be between 50kHz and 200kHz, and the ItsyBitsy
+   * 32u4 5v has a 16MHz clock. The 128x prescaler gets us down to 125kHz, which
+   * works, but apparently setting the ADHSM bit in ADCSRB lets us use higher
+   * clocks, in which case the 64x divisor should work which gets us down to
+   * 250kHz. If the 128x prescaler is being used, ADPS0 needs to be set as well.
+   */
+  // Save the value of MUX5 that was set before.
+  ADCSRB = (ADCSRB & _BV(MUX5)) | _BV(ADHSM);
+  /* Trigger an ADC measurement and wait for it to complete. If this is the
+   * first measurement of the internal temperature sensor we need to do two
+   * samples, discarding the first value.
+   */
+  uint8_t numSamples = isInternalSensor() && oldChannel != adcChannel ? 2 : 1;
+  for (int i = 0; i < numSamples; i++) {
     ADCSRA |= _BV(ADSC);
     loop_until_bit_is_clear(ADCSRA, ADSC);
-    ADCSRA |= _BV(ADSC);
-    loop_until_bit_is_clear(ADCSRA, ADSC);
+  }
+  /* For some reason ADCW wwasn't playing nicely, so manually reading the ADC
+   * values out it is. ADCL is read first, which locks both registers until ADCH
+   * is read (reading ADCH unlocks the registers).
+   */
+  uint8_t adcLow = ADCL;
+  uint8_t adcHigh = ADCH;
+  float adcValue = float((uint16_t(adcHigh) << 8) | uint16_t(adcLow));
+  if (isInternalSensor()) {
     /* Apparently the output of the internal temperature sensor is in
      * Kelvins directly, so let's just convert it to celsius.
      */
-    // TODO: see if you need to explicitly discard the first value, or can
-    // we just barrel right past it?
-    // TODO: The internal sensor can (according to the datasheet) be wildly
-    // inaccurate (±10ºC)
-    int adcValue = ADCW;
-    return adcValue - 273.0;
+    return adcValue - KELVIN_CELSIUS;
+  } else {
+    // Only supporting the TMP36 for the external temperature sensor.
+    float milliVolts = adcValue * V_REF / ADC_RESOLUTION;
+    return (milliVolts - EXTERNAL_SENSOR_OFFSET) / EXTERNAL_SENSOR_SCALING;
   }
 }
 
 size_t Thermometer::printTo(Print& p) const {
   return p.print(getTemperature());
+}
+
+bool Thermometer::isInternalSensor() const {
+  return pin == Thermometer::INTERNAL_SENSOR;
 }
