@@ -1,5 +1,6 @@
 #include "Thermometer.h"
 #include <Arduino.h>
+#include <avr/sleep.h>
 
 // The internal reference voltage for the ADC (in mV).
 static const float V_REF = 2560;
@@ -17,6 +18,11 @@ static const float EXTERNAL_SENSOR_SCALING = 10.0;
 
 // Offset voltage (in mV) for the external temperature sensor (TMP36).
 static const float EXTERNAL_SENSOR_OFFSET = 500.0;
+
+// Global use for retrieving the ADC value via an interrupt handler.
+static volatile uint16_t rawAdcValue;
+
+uint16_t runLowNoiseAdc();
 
 float Thermometer::getTemperature() const {
   // Doing this manually for a bit more control over how the ADC conversion is
@@ -54,9 +60,10 @@ float Thermometer::getTemperature() const {
     ADCSRB &= ~_BV(MUX5);
   }
   /* Setting all the bits in ADCSRA. Setting ADPS2 and ADPS1 sets the 64x
-   * prescaler.
+   * prescaler. Also enable the ADC interrupt so that we can wake from ADC sleep
+   * later.
    */
-  ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1);
+  ADCSRA = _BV(ADEN) | _BV(ADIE) | _BV(ADPS2) | _BV(ADPS1);
   /* The ADC frequency needs to be between 50kHz and 200kHz, and the ItsyBitsy
    * 32u4 5v has a 16MHz clock. The 128x prescaler gets us down to 125kHz, which
    * works, but apparently setting the ADHSM bit in ADCSRB lets us use higher
@@ -74,13 +81,7 @@ float Thermometer::getTemperature() const {
     ADCSRA |= _BV(ADSC);
     loop_until_bit_is_clear(ADCSRA, ADSC);
   }
-  /* For some reason ADCW wwasn't playing nicely, so manually reading the ADC
-   * values out it is. ADCL is read first, which locks both registers until ADCH
-   * is read (reading ADCH unlocks the registers).
-   */
-  uint8_t adcLow = ADCL;
-  uint8_t adcHigh = ADCH;
-  float adcValue = float((uint16_t(adcHigh) << 8) | uint16_t(adcLow));
+  float adcValue = float(runLowNoiseAdc());
   if (isInternalSensor()) {
     /* Apparently the output of the internal temperature sensor is in
      * Kelvins directly, so let's just convert it to celsius.
@@ -99,4 +100,23 @@ size_t Thermometer::printTo(Print& p) const {
 
 bool Thermometer::isInternalSensor() const {
   return pin == Thermometer::INTERNAL_SENSOR;
+}
+
+uint16_t runLowNoiseAdc() {
+  /* Assume everything (channel, voltage reference, etc) is set up prior to this
+   * function, so all that's needed is to kick off a conversion and wait for it
+   * to complete.
+   */
+  set_sleep_mode(SLEEP_MODE_ADC);
+  sleep_mode();
+  /* Need this loop in case the CPU is woken up early (ex: by an external, like
+   * the one used for the fan tachometer). The ADIF flag is reset when the
+   * interrupt handler is run.
+   */
+  loop_until_bit_is_clear(ADCSRA, ADIF);
+  return rawAdcValue;
+}
+
+ISR(ADC_vect) {
+  rawAdcValue = ADCW;
 }
