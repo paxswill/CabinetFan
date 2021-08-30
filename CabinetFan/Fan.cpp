@@ -319,6 +319,10 @@ float Fan::getSpeed() const {
  */
 void Fan::setSpeed(float fanSpeed) {
   float scaledSpeed = constrain(fanSpeed, 0.0, 1.0);
+  // Enforce a minimum of 5% (except for 0, which turns the fan off)
+  if (scaledSpeed != 0.0) {
+    scaledSpeed = max(scaledSpeed, 0.05);
+  }
   // See ramp up notes in `periodic` for explanation of the ramp-up
   bool stopped = getSpeed() == 0.0;
   if (stopped && scaledSpeed < 0.3) {
