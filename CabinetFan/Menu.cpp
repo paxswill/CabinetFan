@@ -109,6 +109,7 @@ void Menu::rootMenu(char command) {
     case 'd':
     case 'D':
       // Toggle fan controller _D_ebug
+      controlInterface->println("Toggling controller debug logging");
       controller->toggleDebug();
       break;
     default:
