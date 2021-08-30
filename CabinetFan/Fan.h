@@ -80,14 +80,14 @@ class Fan {
     /* The maximum speed the fan can go, in rotations per minute. If `sensePin`
      * is set, this value is detected automatically.
      */
-    int maxRPM;
+    uint16_t maxRPM;
 
     /* The TOP value used for the PWM signal. See the appropriate pages in the
      * datasheet for details on how it affects the PWM signal. Alternatively,
      * read Ken Shirriff's "Secrets of Arduino PWM" article for a different
      * (shorter) explanation.
      */
-    int topValue;
+    uint16_t topValue;
 
     /* The array index used for tracking tachometer ticks from the interrupt
      * handler.
