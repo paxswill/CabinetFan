@@ -43,49 +43,37 @@ void PIDFanController::periodic(unsigned long currentMillis) {
     lastUpdate = currentMillis;
     float temp = thermometer->getTemperature();
     controllerDebug("Current temp", temp);
-    /* Turn the fans off if the temperature is lower than the set point (no
-     * sense heating up the cabinet just to turn the fans on).
-     */
-    if (temp < (value - 1.0)) {
-      controllerDebug("Too cold, stopping.");
-      /* TODO: if setRPM() is improved at some point, that might allow for more
-       * fine-grained control.
-       */
-      fan->setSpeed(0.0);
-    } else {
-      const float error = temp - value;
-      controllerDebug("error", error);
-      float correction = 0.0;
-      // Proportional.
-      correction += k_p * error;
-      controllerDebug("Correction after Kp", correction);
-      // Derivative.
-      correction += k_d * ((error - previousError) / elapsedSeconds);
-      controllerDebug("Correction after Kd", correction);
-      // When the error crosses the setpoint, reset the integral
-      if (signbit(previousError) != signbit(error)) {
-        errorIntegral = 0.0;
-      }
-      previousError = error;
-      // Integral. Only bother updating it if integral control is enabled.
-      if (k_i != 0.0) {
-        errorIntegral += error * elapsedSeconds;
-        // Constrain the error integral to 1000
-        errorIntegral = min(errorIntegral, 1000.0);
-        controllerDebug("Error integral", errorIntegral);
-        correction += k_i * errorIntegral;
-        controllerDebug("Correction after Ki", correction);
-      }
-      // Apply the correction and set a new speed as needed.
-      float currentSpeed = fan->getSpeed();
-      controllerDebug("Current Speed", currentSpeed);
-      // Constrain the new speed to the proper bounds.
-      float newSpeed = min(1.0, max(0.0, currentSpeed + correction));
-      controllerDebug("New speed", newSpeed);
-      if (fabsf(currentSpeed - newSpeed) > MIN_SPEED_CHANGE) {
-        controllerDebug("Setting new speed");
-        fan->setSpeed(newSpeed);
-      }
+    const float error = temp - value;
+    controllerDebug("error", error);
+    float correction = 0.0;
+    // Proportional.
+    correction += k_p * error;
+    controllerDebug("Correction after Kp", correction);
+    // Derivative.
+    correction += k_d * ((error - previousError) / elapsedSeconds);
+    controllerDebug("Correction after Kd", correction);
+    // When the error crosses the setpoint, reset the integral
+    if (signbit(previousError) != signbit(error)) {
+      errorIntegral = 0.0;
     }
+    previousError = error;
+    // Integral. Only bother updating it if integral control is enabled.
+    if (k_i != 0.0) {
+      errorIntegral += error * elapsedSeconds;
+      // Constrain the error integral to 300
+      errorIntegral = max(min(errorIntegral, 300.0), -300.0);
+      controllerDebug("Error integral", errorIntegral);
+      correction += k_i * errorIntegral;
+      controllerDebug("Correction after Ki", correction);
+    }
+    // Apply the correction and set a new speed as needed.
+    float currentSpeed = fan->getSpeed();
+    controllerDebug("Current Speed", currentSpeed);
+    // Constrain the new speed to the proper bounds.
+    float newSpeed = min(1.0, max(0.0, currentSpeed + correction));
+    // If the speed would be less than 5%, just stop the fan.
+    newSpeed = newSpeed < 0.05 ? 0.0 : newSpeed;
+    controllerDebug("New speed", newSpeed);
+    fan->setSpeed(newSpeed);
   }
 }
