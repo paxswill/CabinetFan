@@ -11,8 +11,7 @@ const byte tachPin = 0;     // Digital 0   PD2  INT2
 const byte controlPin = 9;  // Digital 9   PB5  TIMER1A
 const byte tempPin = A11;    // D12/A11     PD6  ADC9
 
-Thermometer externalThermo = Thermometer(tempPin);
-Thermometer internalThermo = Thermometer();
+Thermometer thermometer = Thermometer(tempPin);
 Fan *fan;
 Menu *menu;
 
@@ -33,12 +32,8 @@ void setup() {
   * Gelid Silent 12 PWM speed ranges from 750 to 1500 rpm
   */
   fan = new Fan(controlPin, tachPin, phaseFrequencyCorrect);
-  fan->setSpeed(0.8);
-  menu = new Menu(fan, &externalThermo, &Serial);
+  menu = new Menu(fan, &thermometer, &Serial);
 }
-
-// Implicitly set to 0
-unsigned long lastUpdate;
 
 void loop() {
   menu->control();
