@@ -105,13 +105,15 @@ bool Thermometer::isInternalSensor() const {
 uint16_t runLowNoiseAdc() {
   /* Assume everything (channel, voltage reference, etc) is set up prior to this
    * function, so all that's needed is to kick off a conversion and wait for it
-   * to complete.
+   * to complete. Using idle sleep to try to get a little less noise than out of
+   * sleep, but can't use ADC noise reduction sleep as that disables outputs
+   * (which are driving the fan).
    */
-  set_sleep_mode(SLEEP_MODE_ADC);
+  set_sleep_mode(SLEEP_MODE_IDLE);
   sleep_mode();
-  /* Need this loop in case the CPU is woken up early (ex: by an external, like
-   * the one used for the fan tachometer). The ADIF flag is reset when the
-   * interrupt handler is run.
+  /* Need this loop in case the CPU is woken up early (ex: by an external
+   * interrupt, like the one used for the fan tachometer). The ADIF flag is
+   * reset when the interrupt handler is run.
    */
   loop_until_bit_is_clear(ADCSRA, ADIF);
   return rawAdcValue;
