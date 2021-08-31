@@ -27,7 +27,6 @@ PIDFanController::PIDFanController(
   period(period)
 {
   this->name = name;
-  this->average = new MovingAverage<float, 5>();
   controllerDebug("Name", name);
   controllerDebug("Kp", k_p);
   controllerDebug("Ki", k_i);
@@ -42,10 +41,8 @@ void PIDFanController::periodic(unsigned long currentMillis) {
     controllerDebug("Elapsed seconds", elapsedSeconds);
     // Update `lastUpdate` after we have the elapsed time.
     lastUpdate = currentMillis;
-    float raw_temp = thermometer->getTemperature();
-    controllerDebug("Current temp", raw_temp);
-    float temp = this->average->update(raw_temp);
-    controllerDebug("Moving average temp", temp);
+    float temp = thermometer->getTemperature();
+    controllerDebug("Current temp", temp);
     /* Turn the fans off if the temperature is lower than the set point (no
      * sense heating up the cabinet just to turn the fans on).
      */

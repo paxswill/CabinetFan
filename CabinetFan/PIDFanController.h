@@ -2,7 +2,6 @@
 #define FAN_PID_CONTROLLER_H
 
 #include "FanController.h"
-#include "MovingAverage.h"
 #include "Thermometer.h"
 
 /* A PID Controller that adjusts the fan speed to achieve a set temperature.
@@ -40,9 +39,6 @@ class PIDFanController: public FanController {
 
     virtual void periodic(unsigned long currentMillis);
   private:
-    // A moving average of the temperature to filter out noise.
-    MovingAverage<float, 5> * average;
-
     // The thermometer used for determining the process variable
     Thermometer * thermometer;
 

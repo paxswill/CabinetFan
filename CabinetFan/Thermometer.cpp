@@ -1,6 +1,7 @@
 #include "Thermometer.h"
 #include <Arduino.h>
 #include <avr/sleep.h>
+#include "util.h"
 
 // The internal reference voltage for the ADC (in mV).
 static const float V_REF = 2560;
@@ -22,9 +23,24 @@ static const float EXTERNAL_SENSOR_OFFSET = 500.0;
 // Global use for retrieving the ADC value via an interrupt handler.
 static volatile uint16_t rawAdcValue;
 
+// How frequently (in milliseconds) to update the temperature from `periodic()`.
+static const int UPDATE_PERIOD = 1000;
+
 uint16_t runLowNoiseAdc();
 
+Thermometer::Thermometer(uint8_t pin): pin(pin) {
+  average = new MovingAverage<float, 10>();
+}
+
+Thermometer::~Thermometer() {
+  delete average;
+}
+
 float Thermometer::getTemperature() const {
+  return average->current_value();
+}
+
+void Thermometer::updateTemperature() {
   // Doing this manually for a bit more control over how the ADC conversion is
   // performed.
   /* The ADC channels are split between 0-7 and 8-15. The upper channels have
@@ -86,11 +102,21 @@ float Thermometer::getTemperature() const {
     /* Apparently the output of the internal temperature sensor is in
      * Kelvins directly, so let's just convert it to celsius.
      */
-    return adcValue - KELVIN_CELSIUS;
+    average->push(adcValue - KELVIN_CELSIUS);
   } else {
     // Only supporting the TMP36 for the external temperature sensor.
     float milliVolts = adcValue * V_REF / ADC_RESOLUTION;
-    return (milliVolts - EXTERNAL_SENSOR_OFFSET) / EXTERNAL_SENSOR_SCALING;
+    average->push((milliVolts - EXTERNAL_SENSOR_OFFSET) / EXTERNAL_SENSOR_SCALING);
+  }
+}
+
+void Thermometer::periodic() {
+  periodic(millis());
+}
+
+void Thermometer::periodic(unsigned long currentMillis) {
+  if (periodPassed(currentMillis, lastUpdate, UPDATE_PERIOD)) {
+    updateTemperature();
   }
 }
 

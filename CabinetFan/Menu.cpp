@@ -23,6 +23,7 @@ Menu::Menu(
 
 void Menu::control() {
   unsigned long currentMillis = millis();
+  thermometer->periodic(currentMillis);
   fan->periodic(currentMillis);
   controller->periodic(currentMillis);
   if (logEnabled) {
