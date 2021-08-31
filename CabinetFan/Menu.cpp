@@ -197,7 +197,7 @@ void Menu::changeController() {
   controlInterface->println("\tpid");
   // Get the new controller
   controlInterface->setTimeout(INPUT_TIMEOUT);
-  String controllerInput = controlInterface->readStringUntil('\r');
+  String controllerInput = controlInterface->readStringUntil('\n');
   controllerInput.trim();
   ControllerType newController;
   if (controllerInput.equalsIgnoreCase(String("constant"))) {
