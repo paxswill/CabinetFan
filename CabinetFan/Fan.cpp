@@ -306,11 +306,7 @@ void Fan::setupInterrupts() {
  * requested speed.
  */
 float Fan::getSpeed() const {
-  if (sensePin == NOT_SET) {
-    return currentSpeed;
-  } else {
-    return getRPM() / maxRPM;
-  }
+  return currentSpeed;
 }
 
 /*
