@@ -123,6 +123,9 @@ void Menu::rootMenu(char command) {
         controlInterface->print(command);
         controlInterface->println("'");
       }
+      __attribute__ ((fallthrough));
+    case '\n':
+    case '\r':
       printHelp();
   }
 }
